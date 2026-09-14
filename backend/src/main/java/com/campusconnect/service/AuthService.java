@@ -34,29 +34,31 @@ public class AuthService {
         }
 
         Role role;
-
-        try {
-            role = Role.valueOf(request.getRole().toUpperCase());
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid role");
+        if (request.getRole() == null || request.getRole().trim().isEmpty()) {
+            role = Role.STUDENT; // Default fallback if no role is supplied
+        } else {
+            try {
+                role = Role.valueOf(request.getRole().trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Invalid role: " + request.getRole());
+            }
         }
 
-        String hashedPassword =
-                passwordEncoder.encode(request.getPassword());
+        // Encodes plain text or hashes depending on active PasswordEncoder bean
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
         User user = new User(
                 request.getEmail(),
-                hashedPassword,
+                encodedPassword,
                 role
         );
 
         userRepository.save(user);
 
-        String token =
-                jwtService.generateToken(
-                        user.getEmail(),
-                        user.getRole().name()
-                );
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
 
         return new AuthResponse(
                 token,
@@ -79,11 +81,10 @@ public class AuthService {
             throw new RuntimeException("Invalid email or password");
         }
 
-        String token =
-                jwtService.generateToken(
-                        user.getEmail(),
-                        user.getRole().name()
-                );
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
 
         return new AuthResponse(
                 token,
