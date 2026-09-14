@@ -1,7 +1,9 @@
 package com.campusconnect.repository;
 
 import com.campusconnect.model.Year;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface YearRepository extends MongoRepository<Year, String> {
+import java.util.UUID;
+
+public interface YearRepository extends JpaRepository<Year, UUID> {
 }

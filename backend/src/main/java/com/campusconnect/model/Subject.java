@@ -1,30 +1,36 @@
 package com.campusconnect.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
 
-@Document(collection = "subjects")
+import java.util.UUID;
+
+@Entity
+@Table(name = "subjects")
 public class Subject {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false, unique = true)
     private String code;
 
-    private String sectionId;
+    @ManyToOne
+    @JoinColumn(name = "section_id", nullable = false)
+    private Section section;
 
     public Subject() {
     }
 
-    public Subject(String name, String code, String sectionId) {
-        this.name = name;
-        this.code = code;
-        this.sectionId = sectionId;
+    public UUID getId() {
+        return id;
     }
 
-    public String getId() {
-        return id;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -43,11 +49,11 @@ public class Subject {
         this.code = code;
     }
 
-    public String getSectionId() {
-        return sectionId;
+    public Section getSection() {
+        return section;
     }
 
-    public void setSectionId(String sectionId) {
-        this.sectionId = sectionId;
+    public void setSection(Section section) {
+        this.section = section;
     }
 }

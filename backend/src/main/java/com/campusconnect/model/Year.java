@@ -1,25 +1,29 @@
 package com.campusconnect.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
 
-@Document(collection = "years")
+import java.util.UUID;
+
+@Entity
+@Table(name = "academic_years")
 public class Year {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
+    @Column(nullable = false)
     private String name;
 
     public Year() {
     }
 
-    public Year(String name) {
-        this.name = name;
+    public UUID getId() {
+        return id;
     }
 
-    public String getId() {
-        return id;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getName() {

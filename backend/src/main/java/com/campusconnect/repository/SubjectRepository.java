@@ -1,7 +1,9 @@
 package com.campusconnect.repository;
 
 import com.campusconnect.model.Subject;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SubjectRepository extends MongoRepository<Subject, String> {
+import java.util.UUID;
+
+public interface SubjectRepository extends JpaRepository<Subject, UUID> {
 }

@@ -1,32 +1,36 @@
 package com.campusconnect.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
 
-@Document(collection = "semesters")
+import java.util.UUID;
+
+@Entity
+@Table(name = "semesters")
 public class Semester {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    private int number;
+    @Column(nullable = false, unique = true)
+    private Integer number;
 
     public Semester() {
     }
 
-    public Semester(int number) {
-        this.number = number;
-    }
-
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public int getNumber() {
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Integer getNumber() {
         return number;
     }
 
-    public void setNumber(int number) {
+    public void setNumber(Integer number) {
         this.number = number;
     }
 }

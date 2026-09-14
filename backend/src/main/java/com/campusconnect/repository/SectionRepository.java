@@ -1,7 +1,9 @@
 package com.campusconnect.repository;
 
 import com.campusconnect.model.Section;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface SectionRepository extends MongoRepository<Section, String> {
+import java.util.UUID;
+
+public interface SectionRepository extends JpaRepository<Section, UUID> {
 }

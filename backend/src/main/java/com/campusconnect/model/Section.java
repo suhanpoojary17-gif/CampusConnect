@@ -1,33 +1,41 @@
 package com.campusconnect.model;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import jakarta.persistence.*;
+import java.util.UUID;
+import com.campusconnect.model.Year; // Ensures Hibernate targets your @Entity
 
-@Document(collection = "sections")
+@Entity
+@Table(name = "sections")
 public class Section {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
+    @Column(nullable = false)
     private String name;
 
-    private String departmentId;
-    private String yearId;
-    private String semesterId;
+    @ManyToOne
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
+
+    @ManyToOne
+    @JoinColumn(name = "academic_year_id", nullable = false)
+    private Year year;
+
+    @ManyToOne
+    @JoinColumn(name = "semester_id", nullable = false)
+    private Semester semester;
 
     public Section() {
     }
 
-    public Section(String name, String departmentId,
-                   String yearId, String semesterId) {
-        this.name = name;
-        this.departmentId = departmentId;
-        this.yearId = yearId;
-        this.semesterId = semesterId;
+    public UUID getId() {
+        return id;
     }
 
-    public String getId() {
-        return id;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -38,27 +46,27 @@ public class Section {
         this.name = name;
     }
 
-    public String getDepartmentId() {
-        return departmentId;
+    public Department getDepartment() {
+        return department;
     }
 
-    public void setDepartmentId(String departmentId) {
-        this.departmentId = departmentId;
+    public void setDepartment(Department department) {
+        this.department = department;
     }
 
-    public String getYearId() {
-        return yearId;
+    public Year getYear() {
+        return year;
     }
 
-    public void setYearId(String yearId) {
-        this.yearId = yearId;
+    public void setYear(Year year) {
+        this.year = year;
     }
 
-    public String getSemesterId() {
-        return semesterId;
+    public Semester getSemester() {
+        return semester;
     }
 
-    public void setSemesterId(String semesterId) {
-        this.semesterId = semesterId;
+    public void setSemester(Semester semester) {
+        this.semester = semester;
     }
 }
