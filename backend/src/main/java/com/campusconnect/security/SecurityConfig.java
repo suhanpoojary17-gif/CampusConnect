@@ -44,6 +44,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/departments/**").permitAll()
+                        .requestMatchers("/api/years/**").permitAll()
+                        .requestMatchers("/api/semesters/**").permitAll()
+                        .requestMatchers("/api/sections/**").permitAll()
+                        .requestMatchers("/api/subjects/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
