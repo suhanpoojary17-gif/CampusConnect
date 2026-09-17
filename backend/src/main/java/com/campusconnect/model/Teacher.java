@@ -1,6 +1,8 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.UUID;
 
@@ -12,12 +14,16 @@ public class Teacher {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Teacher name is required")
     @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "Teacher email is required")
+    @Email(message = "Enter a valid email address")
     @Column(nullable = false, unique = true)
     private String email;
 
+    @NotBlank(message = "Teacher password is required")
     @Column(nullable = false)
     private String password;
 

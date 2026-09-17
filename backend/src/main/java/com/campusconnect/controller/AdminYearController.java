@@ -6,6 +6,7 @@ import com.campusconnect.repository.YearRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/academic-years")
@@ -20,7 +21,7 @@ public class AdminYearController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Year> createYear(
-            @RequestBody YearRequest request) {
+            @Valid @RequestBody YearRequest request) {
 
         Year year = new Year();
         year.setName(request.getName());

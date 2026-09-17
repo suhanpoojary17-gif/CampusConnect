@@ -1,6 +1,7 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.UUID;
 
@@ -12,9 +13,11 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Department name is required")
     @Column(nullable = false, unique = true)
     private String name;
 
+    @NotBlank(message = "Department code is required")
     @Column(nullable = false, unique = true)
     private String code;
 

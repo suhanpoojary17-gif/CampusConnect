@@ -2,6 +2,7 @@ package com.campusconnect.controller;
 
 import com.campusconnect.model.Student;
 import com.campusconnect.service.StudentService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,8 @@ public class StudentController {
 
     @PostMapping
     public ResponseEntity<Student> createStudent(
-            @RequestBody Student student) {
+            @Valid @RequestBody Student student) {
+
         return ResponseEntity.ok(
                 studentService.createStudent(student)
         );
@@ -28,6 +30,7 @@ public class StudentController {
 
     @GetMapping
     public ResponseEntity<List<Student>> getAllStudents() {
+
         return ResponseEntity.ok(
                 studentService.getAllStudents()
         );
@@ -36,6 +39,7 @@ public class StudentController {
     @GetMapping("/section/{sectionId}")
     public ResponseEntity<List<Student>> getStudentsBySection(
             @PathVariable UUID sectionId) {
+
         return ResponseEntity.ok(
                 studentService.getStudentsBySection(sectionId)
         );
@@ -44,6 +48,7 @@ public class StudentController {
     @GetMapping("/{id}")
     public ResponseEntity<Student> getStudentById(
             @PathVariable UUID id) {
+
         return ResponseEntity.ok(
                 studentService.getStudentById(id)
         );
@@ -52,7 +57,8 @@ public class StudentController {
     @PutMapping("/{id}")
     public ResponseEntity<Student> updateStudent(
             @PathVariable UUID id,
-            @RequestBody Student student) {
+            @Valid @RequestBody Student student) {
+
         return ResponseEntity.ok(
                 studentService.updateStudent(id, student)
         );
@@ -61,6 +67,7 @@ public class StudentController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStudent(
             @PathVariable UUID id) {
+
         studentService.deleteStudent(id);
         return ResponseEntity.noContent().build();
     }

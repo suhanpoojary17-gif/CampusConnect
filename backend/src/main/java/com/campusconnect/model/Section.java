@@ -1,8 +1,10 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 import java.util.UUID;
-import com.campusconnect.model.Year; // Ensures Hibernate targets your @Entity
 
 @Entity
 @Table(name = "sections")
@@ -12,17 +14,21 @@ public class Section {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Section name is required")
     @Column(nullable = false)
     private String name;
 
+    @NotNull(message = "Department is required")
     @ManyToOne
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 
+    @NotNull(message = "Academic year is required")
     @ManyToOne
     @JoinColumn(name = "academic_year_id", nullable = false)
     private Year year;
 
+    @NotNull(message = "Semester is required")
     @ManyToOne
     @JoinColumn(name = "semester_id", nullable = false)
     private Semester semester;

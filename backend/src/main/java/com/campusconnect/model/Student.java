@@ -1,6 +1,9 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
@@ -12,15 +15,20 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Student name is required")
     @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "Student email is required")
+    @Email(message = "Enter a valid email address")
     @Column(nullable = false, unique = true)
     private String email;
 
+    @NotBlank(message = "Student password is required")
     @Column(nullable = false)
     private String password;
 
+    @NotNull(message = "Student section is required")
     @ManyToOne
     @JoinColumn(name = "section_id", nullable = false)
     private Section section;

@@ -2,6 +2,7 @@ package com.campusconnect.controller;
 
 import com.campusconnect.model.Subject;
 import com.campusconnect.service.SubjectService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class SubjectController {
 
     @PostMapping
     public ResponseEntity<Subject> createSubject(
-            @RequestBody Subject subject) {
+            @Valid @RequestBody Subject subject) {
 
         return ResponseEntity.ok(
                 subjectService.createSubject(subject)
@@ -47,7 +48,7 @@ public class SubjectController {
     @PutMapping("/{id}")
     public ResponseEntity<Subject> updateSubject(
             @PathVariable UUID id,
-            @RequestBody Subject subject) {
+            @Valid @RequestBody Subject subject) {
 
         return ResponseEntity.ok(
                 subjectService.updateSubject(id, subject)

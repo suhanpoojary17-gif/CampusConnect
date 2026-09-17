@@ -4,6 +4,7 @@ import com.campusconnect.dto.AuthResponse;
 import com.campusconnect.dto.LoginRequest;
 import com.campusconnect.dto.RegisterRequest;
 import com.campusconnect.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
-            @RequestBody RegisterRequest request) {
+            @Valid @RequestBody RegisterRequest request) {
 
         return ResponseEntity.ok(
                 authService.register(request)
@@ -28,7 +29,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
-            @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request) {
 
         return ResponseEntity.ok(
                 authService.login(request)

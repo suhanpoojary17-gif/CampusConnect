@@ -8,6 +8,7 @@ import com.campusconnect.repository.SubjectRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/subjects")
@@ -27,7 +28,7 @@ public class AdminSubjectController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Subject> createSubject(
-            @RequestBody SubjectRequest request) {
+            @Valid @RequestBody SubjectRequest request) {
 
         Section section =
                 sectionRepository.findById(request.getSectionId())

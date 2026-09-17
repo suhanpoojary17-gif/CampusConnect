@@ -1,6 +1,8 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
@@ -12,12 +14,15 @@ public class Subject {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotBlank(message = "Subject name is required")
     @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "Subject code is required")
     @Column(nullable = false, unique = true)
     private String code;
 
+    @NotNull(message = "Section is required")
     @ManyToOne
     @JoinColumn(name = "section_id", nullable = false)
     private Section section;

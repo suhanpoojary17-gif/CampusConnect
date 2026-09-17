@@ -2,6 +2,7 @@ package com.campusconnect.controller;
 
 import com.campusconnect.model.Teacher;
 import com.campusconnect.service.TeacherService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,8 @@ public class TeacherController {
 
     @PostMapping
     public ResponseEntity<Teacher> createTeacher(
-            @RequestBody Teacher teacher) {
+            @Valid @RequestBody Teacher teacher) {
+
         return ResponseEntity.ok(
                 teacherService.createTeacher(teacher)
         );
@@ -28,6 +30,7 @@ public class TeacherController {
 
     @GetMapping
     public ResponseEntity<List<Teacher>> getAllTeachers() {
+
         return ResponseEntity.ok(
                 teacherService.getAllTeachers()
         );
@@ -36,6 +39,7 @@ public class TeacherController {
     @GetMapping("/{id}")
     public ResponseEntity<Teacher> getTeacherById(
             @PathVariable UUID id) {
+
         return ResponseEntity.ok(
                 teacherService.getTeacherById(id)
         );
@@ -44,7 +48,8 @@ public class TeacherController {
     @PutMapping("/{id}")
     public ResponseEntity<Teacher> updateTeacher(
             @PathVariable UUID id,
-            @RequestBody Teacher teacher) {
+            @Valid @RequestBody Teacher teacher) {
+
         return ResponseEntity.ok(
                 teacherService.updateTeacher(id, teacher)
         );
@@ -53,6 +58,7 @@ public class TeacherController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeacher(
             @PathVariable UUID id) {
+
         teacherService.deleteTeacher(id);
         return ResponseEntity.noContent().build();
     }

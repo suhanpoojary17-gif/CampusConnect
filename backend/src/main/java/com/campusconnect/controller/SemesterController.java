@@ -2,6 +2,7 @@ package com.campusconnect.controller;
 
 import com.campusconnect.model.Semester;
 import com.campusconnect.service.SemesterService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class SemesterController {
 
     @PostMapping
     public ResponseEntity<Semester> createSemester(
-            @RequestBody Semester semester) {
+            @Valid @RequestBody Semester semester) {
 
         return ResponseEntity.ok(
                 semesterService.createSemester(semester)
@@ -47,7 +48,7 @@ public class SemesterController {
     @PutMapping("/{id}")
     public ResponseEntity<Semester> updateSemester(
             @PathVariable UUID id,
-            @RequestBody Semester semester) {
+            @Valid @RequestBody Semester semester) {
 
         return ResponseEntity.ok(
                 semesterService.updateSemester(id, semester)

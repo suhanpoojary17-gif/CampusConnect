@@ -3,6 +3,9 @@ package com.campusconnect.controller;
 import com.campusconnect.dto.DepartmentRequest;
 import com.campusconnect.model.Department;
 import com.campusconnect.repository.DepartmentRepository;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +24,7 @@ public class AdminDepartmentController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Department> createDepartment(
-            @RequestBody DepartmentRequest request) {
+             @Valid @RequestBody DepartmentRequest request) {
 
         Department department = new Department();
 

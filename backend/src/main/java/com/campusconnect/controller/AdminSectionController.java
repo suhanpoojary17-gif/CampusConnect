@@ -12,6 +12,7 @@ import com.campusconnect.repository.YearRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/sections")
@@ -37,7 +38,7 @@ public class AdminSectionController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Section> createSection(
-            @RequestBody SectionRequest request) {
+            @Valid @RequestBody SectionRequest request) {
 
         Department department =
                 departmentRepository.findById(request.getDepartmentId())

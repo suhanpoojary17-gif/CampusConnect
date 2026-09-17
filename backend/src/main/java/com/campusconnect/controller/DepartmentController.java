@@ -4,7 +4,7 @@ import com.campusconnect.model.Department;
 import com.campusconnect.service.DepartmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,7 +20,8 @@ public class DepartmentController {
 
     @PostMapping
     public ResponseEntity<Department> createDepartment(
-            @RequestBody Department department) {
+            @Valid @RequestBody Department department) {
+
         return ResponseEntity.ok(
                 departmentService.createDepartment(department)
         );
@@ -28,6 +29,7 @@ public class DepartmentController {
 
     @GetMapping
     public ResponseEntity<List<Department>> getAllDepartments() {
+
         return ResponseEntity.ok(
                 departmentService.getAllDepartments()
         );
@@ -36,6 +38,7 @@ public class DepartmentController {
     @GetMapping("/{id}")
     public ResponseEntity<Department> getDepartmentById(
             @PathVariable UUID id) {
+
         return ResponseEntity.ok(
                 departmentService.getDepartmentById(id)
         );
@@ -44,7 +47,8 @@ public class DepartmentController {
     @PutMapping("/{id}")
     public ResponseEntity<Department> updateDepartment(
             @PathVariable UUID id,
-            @RequestBody Department department) {
+            @Valid @RequestBody Department department) {
+
         return ResponseEntity.ok(
                 departmentService.updateDepartment(id, department)
         );

@@ -4,6 +4,7 @@ import com.campusconnect.model.Year;
 import com.campusconnect.service.YearService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +21,7 @@ public class YearController {
 
     @PostMapping
     public ResponseEntity<Year> createYear(
-            @RequestBody Year year) {
+            @Valid @RequestBody Year year) {
 
         return ResponseEntity.ok(
                 yearService.createYear(year)
@@ -47,7 +48,7 @@ public class YearController {
     @PutMapping("/{id}")
     public ResponseEntity<Year> updateYear(
             @PathVariable UUID id,
-            @RequestBody Year year) {
+            @Valid @RequestBody Year year) {
 
         return ResponseEntity.ok(
                 yearService.updateYear(id, year)

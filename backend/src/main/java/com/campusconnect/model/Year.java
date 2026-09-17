@@ -1,6 +1,7 @@
 package com.campusconnect.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.UUID;
 
@@ -12,7 +13,8 @@ public class Year {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @NotBlank(message = "Year name is required")
+    @Column(nullable = false, unique = true)
     private String name;
 
     public Year() {
