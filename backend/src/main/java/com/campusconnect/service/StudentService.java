@@ -29,19 +29,22 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
     }
 
-    public Student updateStudent(UUID id, Student student) {
+    public Student updateStudent(UUID id, Student studentDetails) {
         Student existingStudent = getStudentById(id);
 
-        existingStudent.setName(student.getName());
-        existingStudent.setEmail(student.getEmail());
-        existingStudent.setPassword(student.getPassword());
-        existingStudent.setSection(student.getSection());
+        existingStudent.setName(studentDetails.getName());
+        existingStudent.setSection(studentDetails.getSection());
+
+        if (existingStudent.getUser() != null && studentDetails.getUser() != null) {
+            existingStudent.getUser().setEmail(studentDetails.getUser().getEmail());
+            existingStudent.getUser().setPassword(studentDetails.getUser().getPassword());
+        }
 
         return studentRepository.save(existingStudent);
     }
 
     public List<Student> getStudentsBySection(UUID sectionId) {
-    return studentRepository.findBySectionId(sectionId);
+        return studentRepository.findBySectionId(sectionId);
     }
     
     public void deleteStudent(UUID id) {

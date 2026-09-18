@@ -1,7 +1,7 @@
 package com.campusconnect.model;
 
+import com.campusconnect.entity.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -19,17 +19,12 @@ public class Student {
     @Column(nullable = false)
     private String name;
 
-    @NotBlank(message = "Student email is required")
-    @Email(message = "Enter a valid email address")
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @NotBlank(message = "Student password is required")
-    @Column(nullable = false)
-    private String password;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
     @NotNull(message = "Student section is required")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id", nullable = false)
     private Section section;
 
@@ -52,20 +47,12 @@ public class Student {
         this.name = name;
     }
 
-    public String getEmail() {
-        return email;
+    public User getUser() {
+        return user;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public Section getSection() {
