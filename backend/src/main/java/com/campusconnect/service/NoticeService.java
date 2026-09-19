@@ -13,6 +13,7 @@ import com.campusconnect.repository.TeacherAssignmentRepository;
 import com.campusconnect.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
 
 import java.util.List;
 import java.util.UUID;
@@ -171,6 +172,109 @@ public class NoticeService {
 
         return convertToResponse(updatedNotice);
     }
+
+    public NoticeResponse uploadAttachment(
+        UUID noticeId,
+        MultipartFile file,
+        String userEmail
+        ) {
+
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new RuntimeException("Notice not found"));
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getRole() == com.campusconnect.entity.Role.TEACHER) {
+
+                boolean assigned = teacherAssignmentRepository
+                        .existsByTeacherIdAndSectionId(
+                                user.getId(),
+                                notice.getTargetSection().getId()
+                        );
+
+                if (!assigned) {
+                throw new RuntimeException(
+                        "Teacher is not assigned to this section"
+                );
+                }
+
+                if (!notice.getCreator().getId().equals(user.getId())) {
+                throw new RuntimeException(
+                        "Teacher can only upload attachments to their own notices"
+                );
+                }
+        }
+
+        if (user.getRole() == com.campusconnect.entity.Role.STUDENT) {
+        throw new RuntimeException(
+                "Students cannot upload notice attachments"
+        );
+        }
+
+        String attachmentPath = noticeFileService.saveFile(file);
+
+        notice.setAttachmentPath(attachmentPath);
+
+        Notice updatedNotice = noticeRepository.save(notice);
+
+        return convertToResponse(updatedNotice);
+        }
+
+        public Resource downloadAttachment(
+                UUID noticeId,
+                String userEmail
+        ) {
+        Notice notice = noticeRepository.findById(noticeId)
+                .orElseThrow(() -> new RuntimeException("Notice not found"));
+
+        if (notice.getAttachmentPath() == null) {
+                throw new RuntimeException("No attachment found");
+        }
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // STUDENT: only their own section
+        if (user.getRole() == com.campusconnect.entity.Role.STUDENT) {
+
+                Student student = studentRepository.findByUserEmail(userEmail);
+
+                if (student == null) {
+                throw new RuntimeException("Student profile not found");
+                }
+
+                if (!student.getSection().getId()
+                        .equals(notice.getTargetSection().getId())) {
+
+                throw new RuntimeException(
+                        "Student cannot access this notice"
+                );
+                }
+        }
+
+        // TEACHER: only assigned sections
+        if (user.getRole() == com.campusconnect.entity.Role.TEACHER) {
+
+                boolean assigned =
+                        teacherAssignmentRepository
+                                .existsByTeacherIdAndSectionId(
+                                        user.getId(),
+                                        notice.getTargetSection().getId()
+                                );
+
+                if (!assigned) {
+                throw new RuntimeException(
+                        "Teacher is not assigned to this section"
+                );
+                }
+        }
+
+        // ADMIN can access any notice
+        return noticeFileService.loadFile(
+                notice.getAttachmentPath()
+        );
+        }
 
     public void deleteNotice(UUID id, String creatorEmail) {
 

@@ -1,5 +1,7 @@
 package com.campusconnect.service;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,6 +56,33 @@ public class NoticeFileService {
         } catch (IOException e) {
             throw new RuntimeException(
                     "Failed to save notice attachment",
+                    e
+            );
+        }
+    }
+
+    public Resource loadFile(String filePath) {
+
+        try {
+
+            Path path = Paths.get(filePath);
+
+            Resource resource = new UrlResource(
+                    path.toUri()
+            );
+
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new RuntimeException(
+                        "Attachment not found"
+                );
+            }
+
+            return resource;
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(
+                    "Failed to load notice attachment",
                     e
             );
         }
