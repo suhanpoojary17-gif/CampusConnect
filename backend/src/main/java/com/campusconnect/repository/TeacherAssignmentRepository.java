@@ -16,8 +16,13 @@ public interface TeacherAssignmentRepository
     );
 
     boolean existsByTeacherIdAndSectionIdAndSubjectId(
-        Long teacherId,
-        UUID sectionId,
-        UUID subjectId
+            Long teacherId,
+            UUID sectionId,
+            UUID subjectId
+    );
+
+    boolean existsByTeacherIdAndSectionId(
+            Long teacherId,
+            UUID sectionId
     );
 }
