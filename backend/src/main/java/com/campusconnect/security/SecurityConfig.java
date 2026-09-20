@@ -57,6 +57,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/bus-passes/**").hasRole("ADMIN")
                         .requestMatchers("/api/bus-passes/**").hasRole("STUDENT")
 
+                        // Feedback access
+                        .requestMatchers("/api/admin/feedback/**").hasRole("ADMIN")
+                        .requestMatchers("/api/feedback/**").hasRole("STUDENT")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
