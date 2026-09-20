@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/subjects/**").permitAll()
                         .requestMatchers("/api/teachers/**").permitAll()
 
+
                         // Bus Pass access
                         .requestMatchers("/api/admin/bus-passes/**").hasRole("ADMIN")
                         .requestMatchers("/api/bus-passes/**").hasRole("STUDENT")
@@ -60,6 +61,9 @@ public class SecurityConfig {
                         // Feedback access
                         .requestMatchers("/api/admin/feedback/**").hasRole("ADMIN")
                         .requestMatchers("/api/feedback/**").hasRole("STUDENT")
+
+                        // Notification access
+                        .requestMatchers("/api/notifications/**").hasAnyRole("STUDENT", "TEACHER")
 
                         .anyRequest().authenticated()
                 )
