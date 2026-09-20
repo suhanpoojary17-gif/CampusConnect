@@ -24,11 +24,13 @@ public class SecurityConfig {
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
+
     @Bean
     @SuppressWarnings("deprecation")
     public PasswordEncoder passwordEncoder() {
         return NoOpPasswordEncoder.getInstance();
     }
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
@@ -50,6 +52,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/sections/**").permitAll()
                         .requestMatchers("/api/subjects/**").permitAll()
                         .requestMatchers("/api/teachers/**").permitAll()
+
+                        // Bus Pass access
+                        .requestMatchers("/api/admin/bus-passes/**").hasRole("ADMIN")
+                        .requestMatchers("/api/bus-passes/**").hasRole("STUDENT")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
