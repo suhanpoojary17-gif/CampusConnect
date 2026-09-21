@@ -2,9 +2,11 @@ package com.campusconnect.service;
 
 import com.campusconnect.dto.AttendanceAuditResponse;
 import com.campusconnect.dto.AttendanceRequest;
+import com.campusconnect.dto.AttendanceRiskResponse;
 import com.campusconnect.dto.AttendanceSummaryResponse;
 import com.campusconnect.entity.Attendance;
 import com.campusconnect.entity.AttendanceAudit;
+import com.campusconnect.entity.AttendanceRiskLevel;
 import com.campusconnect.entity.AttendanceStatus;
 import com.campusconnect.entity.Role;
 import com.campusconnect.entity.User;
@@ -17,10 +19,15 @@ import com.campusconnect.repository.SubjectRepository;
 import com.campusconnect.repository.TeacherAssignmentRepository;
 import com.campusconnect.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import com.campusconnect.dto.AttendanceForecastResponse;
+import com.campusconnect.dto.SubjectAttendanceResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
 
 @Service
 public class AttendanceService {
@@ -388,6 +395,444 @@ public class AttendanceService {
                 percentage
         );
     }
+public AttendanceRiskResponse getAttendanceRisk(
+            UUID studentId,
+            String requesterEmail) {
+
+        User requester = userRepository
+                .findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Students can only view their own attendance risk
+        if (requester.getRole() == Role.STUDENT) {
+
+            Student student =
+                    studentRepository.findByUserEmail(requesterEmail);
+
+            if (student == null) {
+                throw new RuntimeException(
+                        "Student profile not found"
+                );
+            }
+
+            if (!student.getId().equals(studentId)) {
+                throw new RuntimeException(
+                        "Students can only view their own attendance"
+                );
+            }
+        }
+
+        // Reuse the existing attendance records
+        List<Attendance> attendanceList =
+                attendanceRepository.findByStudentId(studentId);
+
+        long totalClasses = attendanceList.size();
+
+        long presentClasses = attendanceList.stream()
+                .filter(attendance ->
+                        attendance.getStatus() == AttendanceStatus.PRESENT)
+                .count();
+
+        long absentClasses = totalClasses - presentClasses;
+
+        double attendancePercentage =
+                totalClasses == 0
+                        ? 0.0
+                        : (presentClasses * 100.0) / totalClasses;
+
+        AttendanceRiskLevel riskLevel =
+                calculateRiskLevel(attendancePercentage);
+
+        long classesNeededFor75 =
+                calculateClassesNeededFor75(
+                        presentClasses,
+                        totalClasses
+                );
+
+        return new AttendanceRiskResponse(
+                attendancePercentage,
+                riskLevel,
+                presentClasses,
+                totalClasses,
+                absentClasses,
+                classesNeededFor75
+        );
+    }
+
+        public AttendanceRiskResponse getSubjectAttendanceRisk(
+                UUID studentId,
+                UUID subjectId,
+                String requesterEmail) {
+
+        User requester = userRepository
+                .findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Students can only view their own attendance risk
+        if (requester.getRole() == Role.STUDENT) {
+
+                Student student =
+                        studentRepository.findByUserEmail(requesterEmail);
+
+                if (student == null) {
+                throw new RuntimeException(
+                        "Student profile not found"
+                );
+                }
+
+                if (!student.getId().equals(studentId)) {
+                throw new RuntimeException(
+                        "Students can only view their own attendance"
+                );
+                }
+        }
+
+        List<Attendance> attendanceList =
+                attendanceRepository.findByStudentIdAndSubjectId(
+                        studentId,
+                        subjectId
+                );
+
+        long totalClasses = attendanceList.size();
+
+        long presentClasses = attendanceList.stream()
+                .filter(attendance ->
+                        attendance.getStatus() == AttendanceStatus.PRESENT)
+                .count();
+
+        long absentClasses = totalClasses - presentClasses;
+
+        double attendancePercentage =
+                totalClasses == 0
+                        ? 0.0
+                        : (presentClasses * 100.0) / totalClasses;
+
+        AttendanceRiskLevel riskLevel =
+                calculateRiskLevel(attendancePercentage);
+
+        long classesNeededFor75 =
+                calculateClassesNeededFor75(
+                        presentClasses,
+                        totalClasses
+                );
+
+        return new AttendanceRiskResponse(
+                roundToTwoDecimals(attendancePercentage),
+                riskLevel,
+                presentClasses,
+                totalClasses,
+                absentClasses,
+                classesNeededFor75
+        );
+        }
+
+        public AttendanceForecastResponse getSubjectAttendanceForecast(
+                UUID studentId,
+                UUID subjectId,
+                long upcomingClasses,
+                String requesterEmail) {
+
+        if (upcomingClasses < 0) {
+                throw new RuntimeException(
+                        "Upcoming classes cannot be negative"
+                );
+        }
+
+        User requester = userRepository
+                .findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Students can only view their own attendance forecast
+        if (requester.getRole() == Role.STUDENT) {
+
+                Student student =
+                        studentRepository.findByUserEmail(requesterEmail);
+
+                if (student == null) {
+                throw new RuntimeException(
+                        "Student profile not found"
+                );
+                }
+
+                if (!student.getId().equals(studentId)) {
+                throw new RuntimeException(
+                        "Students can only view their own attendance"
+                );
+                }
+        }
+
+        List<Attendance> attendanceList =
+                attendanceRepository.findByStudentIdAndSubjectId(
+                        studentId,
+                        subjectId
+                );
+
+        long totalClasses = attendanceList.size();
+
+        long presentClasses = attendanceList.stream()
+                .filter(attendance ->
+                        attendance.getStatus() == AttendanceStatus.PRESENT)
+                .count();
+
+        double currentPercentage =
+                totalClasses == 0
+                        ? 0.0
+                        : (presentClasses * 100.0) / totalClasses;
+
+        long futureTotalClasses =
+                totalClasses + upcomingClasses;
+
+        double bestCasePercentage;
+        double worstCasePercentage;
+
+        if (futureTotalClasses == 0) {
+
+                bestCasePercentage = 0.0;
+                worstCasePercentage = 0.0;
+
+        } else {
+
+                bestCasePercentage =
+                        ((presentClasses + upcomingClasses) * 100.0)
+                                / futureTotalClasses;
+
+                worstCasePercentage =
+                        (presentClasses * 100.0)
+                                / futureTotalClasses;
+        }
+
+        return new AttendanceForecastResponse(
+                roundToTwoDecimals(currentPercentage),
+                upcomingClasses,
+                roundToTwoDecimals(bestCasePercentage),
+                roundToTwoDecimals(worstCasePercentage)
+        );
+        }
+
+    public AttendanceForecastResponse getAttendanceForecast(
+            UUID studentId,
+            long upcomingClasses,
+            String requesterEmail) {
+
+        if (upcomingClasses < 0) {
+            throw new RuntimeException(
+                    "Upcoming classes cannot be negative"
+            );
+        }
+
+        User requester = userRepository
+                .findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Students can only view their own attendance forecast
+        if (requester.getRole() == Role.STUDENT) {
+
+            Student student =
+                    studentRepository.findByUserEmail(requesterEmail);
+
+            if (student == null) {
+                throw new RuntimeException(
+                        "Student profile not found"
+                );
+            }
+
+            if (!student.getId().equals(studentId)) {
+                throw new RuntimeException(
+                        "Students can only view their own attendance"
+                );
+            }
+        }
+
+        List<Attendance> attendanceList =
+                attendanceRepository.findByStudentId(studentId);
+
+        long totalClasses = attendanceList.size();
+
+        long presentClasses = attendanceList.stream()
+                .filter(attendance ->
+                        attendance.getStatus() == AttendanceStatus.PRESENT)
+                .count();
+
+        double currentPercentage =
+                totalClasses == 0
+                        ? 0.0
+                        : (presentClasses * 100.0) / totalClasses;
+
+        long futureTotalClasses =
+                totalClasses + upcomingClasses;
+
+        double bestCasePercentage;
+        double worstCasePercentage;
+
+        if (futureTotalClasses == 0) {
+
+            bestCasePercentage = 0.0;
+            worstCasePercentage = 0.0;
+
+        } else {
+
+            bestCasePercentage =
+                    ((presentClasses + upcomingClasses) * 100.0)
+                            / futureTotalClasses;
+
+            worstCasePercentage =
+                    (presentClasses * 100.0)
+                            / futureTotalClasses;
+        }
+
+        return new AttendanceForecastResponse(
+                roundToTwoDecimals(currentPercentage),
+                upcomingClasses,
+                roundToTwoDecimals(bestCasePercentage),
+                roundToTwoDecimals(worstCasePercentage)
+        );
+    }
+
+        public List<SubjectAttendanceResponse> getAllSubjectAttendance(
+                UUID studentId,
+                String requesterEmail) {
+
+        User requester = userRepository
+                .findByEmail(requesterEmail)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Students can only view their own attendance
+        if (requester.getRole() == Role.STUDENT) {
+
+                Student student =
+                        studentRepository.findByUserEmail(requesterEmail);
+
+                if (student == null) {
+                throw new RuntimeException(
+                        "Student profile not found"
+                );
+                }
+
+                if (!student.getId().equals(studentId)) {
+                throw new RuntimeException(
+                        "Students can only view their own attendance"
+                );
+                }
+        }
+
+        List<Attendance> attendanceList =
+                attendanceRepository.findByStudentId(studentId);
+
+        Map<UUID, List<Attendance>> attendanceBySubject =
+                new LinkedHashMap<>();
+
+        for (Attendance attendance : attendanceList) {
+
+                UUID subjectId =
+                        attendance.getSubject().getId();
+
+                attendanceBySubject
+                        .computeIfAbsent(
+                                subjectId,
+                                key -> new ArrayList<>()
+                        )
+                        .add(attendance);
+        }
+
+        List<SubjectAttendanceResponse> response =
+                new ArrayList<>();
+
+        for (List<Attendance> subjectAttendance :
+                attendanceBySubject.values()) {
+
+                Subject subject =
+                        subjectAttendance.get(0).getSubject();
+
+                long totalClasses =
+                        subjectAttendance.size();
+
+                long presentClasses =
+                        subjectAttendance.stream()
+                                .filter(attendance ->
+                                        attendance.getStatus()
+                                                == AttendanceStatus.PRESENT)
+                                .count();
+
+                long absentClasses =
+                        totalClasses - presentClasses;
+
+                double attendancePercentage =
+                        totalClasses == 0
+                                ? 0.0
+                                : (presentClasses * 100.0)
+                                        / totalClasses;
+
+                AttendanceRiskLevel riskLevel =
+                        calculateRiskLevel(
+                                attendancePercentage
+                        );
+
+                long classesNeededFor75 =
+                        calculateClassesNeededFor75(
+                                presentClasses,
+                                totalClasses
+                        );
+
+                response.add(
+                        new SubjectAttendanceResponse(
+                                subject.getName(),
+                                subject.getCode(),
+                                roundToTwoDecimals(
+                                        attendancePercentage
+                                ),
+                                riskLevel,
+                                presentClasses,
+                                totalClasses,
+                                absentClasses,
+                                classesNeededFor75
+                        )
+                );
+        }
+
+        return response;
+        }
+
+    private double roundToTwoDecimals(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    private AttendanceRiskLevel calculateRiskLevel(double percentage) {
+        if (percentage >= 80.0) {
+            return AttendanceRiskLevel.SAFE;
+        }
+
+        if (percentage >= 75.0) {
+            return AttendanceRiskLevel.MODERATE;
+        }
+
+        return AttendanceRiskLevel.HIGH;
+    }
+
+    private long calculateClassesNeededFor75(long present, long total) {
+        if (total == 0) {
+            return 0;
+        }
+
+        double currentPercentage = (present * 100.0) / total;
+
+        if (currentPercentage >= 75.0) {
+            return 0;
+        }
+
+        double requiredClasses = (0.75 * total - present) / 0.25;
+
+        return (long) Math.ceil(requiredClasses);
+    }
 
     public void markAllPresent(
             UUID sectionId,
@@ -464,9 +909,9 @@ public class AttendanceService {
         }
     }
 
-        public List<AttendanceAuditResponse> getAttendanceAuditHistory(
-                Long attendanceId,
-                String requesterEmail) {
+    public List<AttendanceAuditResponse> getAttendanceAuditHistory(
+            Long attendanceId,
+            String requesterEmail) {
 
         Attendance attendance = attendanceRepository
                 .findById(attendanceId)
@@ -480,50 +925,43 @@ public class AttendanceService {
                         new RuntimeException("User not found")
                 );
 
-        // Teachers can only view audit history
-        // for subjects/classes they are assigned to
+        // Teachers can only view audit history for subjects/classes they are assigned to
         if (requester.getRole() == Role.TEACHER) {
 
-                UUID sectionId =
-                        attendance.getSubject()
-                                .getSection()
-                                .getId();
+            UUID sectionId = attendance.getSubject().getSection().getId();
 
-                boolean teacherAssigned =
-                        teacherAssignmentRepository
-                                .existsByTeacherIdAndSectionIdAndSubjectId(
-                                        requester.getId(),
-                                        sectionId,
-                                        attendance.getSubject().getId()
-                                );
+            boolean teacherAssigned =
+                    teacherAssignmentRepository
+                            .existsByTeacherIdAndSectionIdAndSubjectId(
+                                    requester.getId(),
+                                    sectionId,
+                                    attendance.getSubject().getId()
+                            );
 
-                if (!teacherAssigned) {
+            if (!teacherAssigned) {
                 throw new RuntimeException(
                         "Teacher is not assigned to this subject/class"
                 );
-                }
+            }
         }
 
-        // Students can only view audit history
-        // for their own attendance
+        // Students can only view audit history for their own attendance
         if (requester.getRole() == Role.STUDENT) {
 
-                Student student =
-                        studentRepository.findByUserEmail(requesterEmail);
+            Student student =
+                    studentRepository.findByUserEmail(requesterEmail);
 
-                if (student == null) {
+            if (student == null) {
                 throw new RuntimeException(
                         "Student profile not found"
                 );
-                }
+            }
 
-                if (!student.getId()
-                        .equals(attendance.getStudent().getId())) {
-
+            if (!student.getId().equals(attendance.getStudent().getId())) {
                 throw new RuntimeException(
                         "Students can only view their own attendance"
                 );
-                }
+            }
         }
 
         return attendanceAuditRepository
@@ -538,5 +976,5 @@ public class AttendanceService {
                         audit.getChangedAt()
                 ))
                 .toList();
-        }
+    }
 }

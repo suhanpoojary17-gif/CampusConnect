@@ -13,6 +13,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.campusconnect.dto.AttendanceRiskResponse;
+import com.campusconnect.dto.AttendanceForecastResponse;
+import com.campusconnect.dto.SubjectAttendanceResponse;
+
 
 import java.time.LocalDate;
 import java.util.List;
@@ -186,6 +190,79 @@ public class AttendanceController {
 
         return ResponseEntity.ok(
                 attendanceService.getOverallAttendanceSummary(
+                        studentId,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/student/{studentId}/risk")
+        public ResponseEntity<AttendanceRiskResponse> getAttendanceRisk(
+                @PathVariable UUID studentId,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getAttendanceRisk(
+                        studentId,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/student/{studentId}/forecast")
+        public ResponseEntity<AttendanceForecastResponse> getAttendanceForecast(
+                @PathVariable UUID studentId,
+                @RequestParam long upcomingClasses,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getAttendanceForecast(
+                        studentId,
+                        upcomingClasses,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/student/{studentId}/subject/{subjectId}/risk")
+        public ResponseEntity<AttendanceRiskResponse> getSubjectAttendanceRisk(
+                @PathVariable UUID studentId,
+                @PathVariable UUID subjectId,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getSubjectAttendanceRisk(
+                        studentId,
+                        subjectId,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/student/{studentId}/subject/{subjectId}/forecast")
+        public ResponseEntity<AttendanceForecastResponse> getSubjectAttendanceForecast(
+                @PathVariable UUID studentId,
+                @PathVariable UUID subjectId,
+                @RequestParam long upcomingClasses,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getSubjectAttendanceForecast(
+                        studentId,
+                        subjectId,
+                        upcomingClasses,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/student/{studentId}/all-subjects")
+        public ResponseEntity<List<SubjectAttendanceResponse>> getAllSubjectAttendance(
+                @PathVariable UUID studentId,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getAllSubjectAttendance(
                         studentId,
                         authentication.getName()
                 )
