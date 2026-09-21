@@ -65,6 +65,16 @@ public class SecurityConfig {
                         // Notification access
                         .requestMatchers("/api/notifications/**").hasAnyRole("STUDENT", "TEACHER")
 
+                        // Attendance access
+                        .requestMatchers("/api/attendance/student/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/attendance/class/**")
+                                .hasAnyRole("TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/attendance/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

@@ -1,7 +1,10 @@
 package com.campusconnect.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.campusconnect.dto.AttendanceAuditResponse;
 import com.campusconnect.dto.AttendanceRequest;
+import com.campusconnect.dto.AttendanceResponse;
+import com.campusconnect.dto.AttendanceSummaryResponse;
 import com.campusconnect.entity.Attendance;
 import com.campusconnect.entity.User;
 import com.campusconnect.repository.UserRepository;
@@ -11,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,13 +59,12 @@ public class AttendanceController {
         return ResponseEntity.ok(attendance);
     }
 
-    
     @PreAuthorize("hasRole('TEACHER')")
     @PostMapping("/present-all")
     public ResponseEntity<String> markAllPresent(
             @RequestParam UUID sectionId,
             @RequestParam UUID subjectId,
-            @RequestParam java.time.LocalDate attendanceDate,
+            @RequestParam LocalDate attendanceDate,
             Authentication authentication) {
 
         String email = authentication.getName();
@@ -79,77 +82,126 @@ public class AttendanceController {
                 teacher.getId()
         );
 
-    return ResponseEntity.ok(
-            "All students marked present successfully"
-    );
-}
-
-    @GetMapping("/class/{id}")
-    public ResponseEntity<List<Attendance>> getClassAttendance(
-            @PathVariable("id") UUID sectionId) {
-
         return ResponseEntity.ok(
-                attendanceService.getClassAttendance(sectionId)
+                "All students marked present successfully"
         );
     }
 
-    @GetMapping("/student/{id}")
-    public ResponseEntity<java.util.List<Attendance>> getStudentAttendance(
-        @PathVariable("id") java.util.UUID studentId) {
+    @GetMapping("/class/{id}")
+    public ResponseEntity<List<Attendance>> getClassAttendance(
+            @PathVariable("id") UUID sectionId,
+            Authentication authentication) {
 
-    return ResponseEntity.ok(
-            attendanceService.getStudentAttendance(studentId)
-    );
-}
+        return ResponseEntity.ok(
+                attendanceService.getClassAttendance(
+                        sectionId,
+                        authentication.getName()
+                )
+        );
+    }
+
+        @GetMapping("/student/{id}")
+        public ResponseEntity<List<AttendanceResponse>> getStudentAttendance(
+                @PathVariable("id") UUID studentId,
+                Authentication authentication) {
+
+        List<Attendance> attendanceList =
+                attendanceService.getStudentAttendance(
+                        studentId,
+                        authentication.getName()
+                );
+
+        List<AttendanceResponse> responseList =
+                attendanceList.stream()
+                        .map(attendance -> new AttendanceResponse(
+                                attendance.getId(),
+                                attendance.getStudent().getId(),
+                                attendance.getSubject().getId(),
+                                attendance.getTeacher().getId(),
+                                attendance.getAttendanceDate(),
+                                attendance.getStatus()
+                        ))
+                        .toList();
+
+        return ResponseEntity.ok(responseList);
+        }
 
     @PreAuthorize("hasRole('TEACHER')")
     @PutMapping("/{id}")
-    public ResponseEntity<Attendance> updateAttendance(
-        @PathVariable("id") Long attendanceId,
-        @Valid @RequestBody AttendanceRequest request,
-        Authentication authentication) {
+    public ResponseEntity<AttendanceResponse> updateAttendance(
+            @PathVariable("id") Long attendanceId,
+            @Valid @RequestBody AttendanceRequest request,
+            Authentication authentication) {
 
-    // Get logged-in teacher's email from JWT
-    String email = authentication.getName();
+        // Get logged-in teacher's email from JWT
+        String email = authentication.getName();
 
-    // Find teacher
-    User teacher = userRepository
-            .findByEmail(email)
-            .orElseThrow(() ->
-                    new RuntimeException("Teacher not found")
-            );
+        // Find teacher
+        User teacher = userRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("Teacher not found")
+                );
 
-    // Update attendance
-    Attendance attendance =
-            attendanceService.updateAttendance(
-                    attendanceId,
-                    request,
-                    teacher.getId()
-            );
+        // Update attendance
+        Attendance attendance =
+                attendanceService.updateAttendance(
+                        attendanceId,
+                        request,
+                        teacher.getId()
+                );
 
-    return ResponseEntity.ok(attendance);
-}
-    @GetMapping("/student/{studentId}/subject/{subjectId}/summary")
-    public ResponseEntity<com.campusconnect.dto.AttendanceSummaryResponse>
-        getSubjectAttendanceSummary(
+        // Convert entity to DTO
+        AttendanceResponse response = new AttendanceResponse(
+                attendance.getId(),
+                attendance.getStudent().getId(),
+                attendance.getSubject().getId(),
+                attendance.getTeacher().getId(),
+                attendance.getAttendanceDate(),
+                attendance.getStatus()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+        @GetMapping("/student/{studentId}/subject/{subjectId}/summary")
+        public ResponseEntity<AttendanceSummaryResponse> getSubjectAttendanceSummary(
                 @PathVariable UUID studentId,
-                @PathVariable UUID subjectId) {
+                @PathVariable UUID subjectId,
+                Authentication authentication) {
 
-    return ResponseEntity.ok(
-            attendanceService.getSubjectAttendanceSummary(
-                    studentId,
-                    subjectId
-            )
-    );
-}
+        return ResponseEntity.ok(
+                attendanceService.getSubjectAttendanceSummary(
+                        studentId,
+                        subjectId,
+                        authentication.getName()
+                )
+        );
+        }
 
-    @GetMapping("/student/{studentId}/summary")
-    public ResponseEntity<com.campusconnect.dto.AttendanceSummaryResponse>
-        getOverallAttendanceSummary(
-                @PathVariable UUID studentId) {
+        @GetMapping("/student/{studentId}/summary")
+        public ResponseEntity<AttendanceSummaryResponse> getOverallAttendanceSummary(
+                @PathVariable UUID studentId,
+                Authentication authentication) {
 
-    return ResponseEntity.ok(
-            attendanceService.getOverallAttendanceSummary(studentId)
-    );
-}
+        return ResponseEntity.ok(
+                attendanceService.getOverallAttendanceSummary(
+                        studentId,
+                        authentication.getName()
+                )
+        );
+        }
+
+        @GetMapping("/{id}/audit")
+        public ResponseEntity<List<AttendanceAuditResponse>> getAttendanceAuditHistory(
+                @PathVariable("id") Long attendanceId,
+                Authentication authentication) {
+
+        return ResponseEntity.ok(
+                attendanceService.getAttendanceAuditHistory(
+                        attendanceId,
+                        authentication.getName()
+                )
+        );
+        }
 }
