@@ -87,6 +87,31 @@ public class TimetableService {
                 .toList();
     }
 
+        // Student: View tomorrow's timetable
+        public List<TimetableResponse> getTomorrowTimetable(
+                UUID sectionId,
+                String studentEmail
+        ) {
+        validateStudentSection(sectionId, studentEmail);
+
+        DayOfWeek tomorrow =
+                DayOfWeek.valueOf(
+                        LocalDate.now()
+                                .plusDays(1)
+                                .getDayOfWeek()
+                                .name()
+                );
+
+        return timetableRepository
+                .findBySectionIdAndDayOrderByStartTime(
+                        sectionId,
+                        tomorrow
+                )
+                .stream()
+                .map(this::convertToResponse)
+                .toList();
+        }
+
     // Student: View weekly timetable
     public List<TimetableResponse> getWeeklyTimetable(
             UUID sectionId,
