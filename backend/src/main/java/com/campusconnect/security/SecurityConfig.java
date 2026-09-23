@@ -90,6 +90,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/assessments/**")
                                 .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
 
+                        .requestMatchers("/api/performance/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
 
                         // Catch-all MUST be last
                         .anyRequest().authenticated()
