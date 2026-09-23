@@ -81,8 +81,20 @@ public class SecurityConfig {
                         .requestMatchers("/api/submissions/**")
                                 .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
 
+                        .requestMatchers("/api/assignments/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/submissions/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/assessments/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+
                         // Catch-all MUST be last
                         .anyRequest().authenticated()
+
+                        
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
