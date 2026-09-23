@@ -45,6 +45,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/departments/**").permitAll()
                         .requestMatchers("/api/years/**").permitAll()
@@ -52,7 +53,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/sections/**").permitAll()
                         .requestMatchers("/api/subjects/**").permitAll()
                         .requestMatchers("/api/teachers/**").permitAll()
-
 
                         // Bus Pass access
                         .requestMatchers("/api/admin/bus-passes/**").hasRole("ADMIN")
@@ -68,13 +68,20 @@ public class SecurityConfig {
                         // Attendance access
                         .requestMatchers("/api/attendance/student/**")
                                 .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
-
                         .requestMatchers("/api/attendance/class/**")
                                 .hasAnyRole("TEACHER", "ADMIN")
-
                         .requestMatchers("/api/attendance/**")
                                 .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
 
+                        // Assignment access
+                        .requestMatchers("/api/assignments/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        // Assignment submission access
+                        .requestMatchers("/api/submissions/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        // Catch-all MUST be last
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
