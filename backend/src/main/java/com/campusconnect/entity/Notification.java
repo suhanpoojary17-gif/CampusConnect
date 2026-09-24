@@ -28,6 +28,18 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
+    /*
+     * Used to identify a specific notification event.
+     *
+     * Example:
+     * EXAM_TOMORROW:b4b746b9-08f1-4e42-bdfe-9ae63b08cb4c
+     *
+     * This prevents scheduled notifications from being
+     * generated repeatedly for the same event.
+     */
+    @Column(length = 255)
+    private String eventKey;
+
     @Column(nullable = false)
     private boolean isRead = false;
 
@@ -75,6 +87,14 @@ public class Notification {
 
     public void setType(NotificationType type) {
         this.type = type;
+    }
+
+    public String getEventKey() {
+        return eventKey;
+    }
+
+    public void setEventKey(String eventKey) {
+        this.eventKey = eventKey;
     }
 
     public boolean isRead() {

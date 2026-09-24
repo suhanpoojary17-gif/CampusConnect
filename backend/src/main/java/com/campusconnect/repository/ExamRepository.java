@@ -33,4 +33,6 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
             LocalTime startTime,
             UUID id
     );
+
+    List<Exam> findByExamDate(LocalDate examDate);
 }

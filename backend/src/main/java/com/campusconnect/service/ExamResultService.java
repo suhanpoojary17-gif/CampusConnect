@@ -17,17 +17,19 @@ public class ExamResultService {
     private final ExamRepository examRepository;
     private final UserRepository userRepository;
     private final TeacherAssignmentRepository teacherAssignmentRepository;
+    private final NotificationService notificationService;
 
     public ExamResultService(
             ExamRepository examRepository,
             UserRepository userRepository,
-            TeacherAssignmentRepository teacherAssignmentRepository
+            TeacherAssignmentRepository teacherAssignmentRepository,
+            NotificationService notificationService
     ) {
         this.examRepository = examRepository;
         this.userRepository = userRepository;
         this.teacherAssignmentRepository = teacherAssignmentRepository;
+        this.notificationService = notificationService;
     }
-
     public String submitResult(
             UUID examId,
             String email
@@ -58,13 +60,22 @@ public class ExamResultService {
             );
         }
 
-        exam.setResultStatus(
-                ExamResultStatus.SUBMITTED
-        );
+    exam.setResultStatus(
+            ExamResultStatus.PUBLISHED
+    );
 
-        examRepository.save(exam);
+    examRepository.save(exam);
 
-        return "Exam result submitted successfully";
+    notificationService.notifyStudentsInSection(
+            exam.getSection().getId(),
+            "Result Published",
+            "The result for "
+                    + exam.getTitle()
+                    + " has been published.",
+            com.campusconnect.model.NotificationType.RESULT
+    );
+
+    return "Exam result published successfully";
     }
 
     public String publishResult(

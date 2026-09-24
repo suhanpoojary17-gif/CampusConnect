@@ -16,6 +16,7 @@ import com.campusconnect.repository.TeacherAssignmentRepository;
 import com.campusconnect.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -30,19 +31,22 @@ public class TeacherExamService {
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
     private final TeacherAssignmentRepository teacherAssignmentRepository;
+    private final NotificationService notificationService;
 
     public TeacherExamService(
             ExamRepository examRepository,
             ExamMarkRepository examMarkRepository,
             StudentRepository studentRepository,
             UserRepository userRepository,
-            TeacherAssignmentRepository teacherAssignmentRepository
+            TeacherAssignmentRepository teacherAssignmentRepository,
+            NotificationService notificationService
     ) {
         this.examRepository = examRepository;
         this.examMarkRepository = examMarkRepository;
         this.studentRepository = studentRepository;
         this.userRepository = userRepository;
         this.teacherAssignmentRepository = teacherAssignmentRepository;
+        this.notificationService = notificationService;
     }
 
     public List<ExamResponse> getMyEligibleExams(String email) {
@@ -148,7 +152,20 @@ public class TeacherExamService {
                     java.time.LocalDateTime.now()
             );
 
+            ExamMark savedExamMark =
             examMarkRepository.save(examMark);
+
+    notificationService.createNotification(
+            student.getUser().getId(),
+            "Exam Marks Updated",
+            "Your marks for "
+                    + exam.getTitle()
+                    + " have been updated: "
+                    + savedExamMark.getMarks()
+                    + "/"
+                    + exam.getMaximumMarks(),
+            com.campusconnect.model.NotificationType.MARKS
+    );
         }
 
         return getExamMarks(examId, email);

@@ -18,6 +18,8 @@ import org.springframework.core.io.Resource;
 import java.util.List;
 import java.util.UUID;
 
+import com.campusconnect.model.NotificationType;
+
 @Service
 public class NoticeService {
 
@@ -27,6 +29,7 @@ public class NoticeService {
     private final NoticeFileService noticeFileService;
     private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final StudentRepository studentRepository;
+    private final NotificationService notificationService;
 
     public NoticeService(
             NoticeRepository noticeRepository,
@@ -34,7 +37,8 @@ public class NoticeService {
             UserRepository userRepository,
             NoticeFileService noticeFileService,
             TeacherAssignmentRepository teacherAssignmentRepository,
-            StudentRepository studentRepository
+            StudentRepository studentRepository,
+            NotificationService notificationService
     ) {
         this.noticeRepository = noticeRepository;
         this.sectionRepository = sectionRepository;
@@ -42,6 +46,7 @@ public class NoticeService {
         this.noticeFileService = noticeFileService;
         this.teacherAssignmentRepository = teacherAssignmentRepository;
         this.studentRepository = studentRepository;
+        this.notificationService = notificationService;
     }
 
     public NoticeResponse createNotice(
@@ -83,6 +88,19 @@ public class NoticeService {
         notice.setAttachmentPath(attachmentPath);
 
         Notice savedNotice = noticeRepository.save(notice);
+
+        // ---------------------------------------------------------
+        // DAY 22: AUTOMATIC NOTIFICATION
+        // ---------------------------------------------------------
+
+        notificationService.notifyStudentsInSection(
+                section.getId(),
+                "New Notice",
+                "A new notice has been posted: "
+                        + savedNotice.getTitle(),
+                NotificationType.NOTICE,
+                "NOTICE:" + savedNotice.getId()
+        );
 
         return convertToResponse(savedNotice);
     }
@@ -174,10 +192,10 @@ public class NoticeService {
     }
 
     public NoticeResponse uploadAttachment(
-        UUID noticeId,
-        MultipartFile file,
-        String userEmail
-        ) {
+            UUID noticeId,
+            MultipartFile file,
+            String userEmail
+    ) {
 
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
@@ -187,29 +205,29 @@ public class NoticeService {
 
         if (user.getRole() == com.campusconnect.entity.Role.TEACHER) {
 
-                boolean assigned = teacherAssignmentRepository
-                        .existsByTeacherIdAndSectionId(
-                                user.getId(),
-                                notice.getTargetSection().getId()
-                        );
+            boolean assigned = teacherAssignmentRepository
+                    .existsByTeacherIdAndSectionId(
+                            user.getId(),
+                            notice.getTargetSection().getId()
+                    );
 
-                if (!assigned) {
+            if (!assigned) {
                 throw new RuntimeException(
                         "Teacher is not assigned to this section"
                 );
-                }
+            }
 
-                if (!notice.getCreator().getId().equals(user.getId())) {
+            if (!notice.getCreator().getId().equals(user.getId())) {
                 throw new RuntimeException(
                         "Teacher can only upload attachments to their own notices"
                 );
-                }
+            }
         }
 
         if (user.getRole() == com.campusconnect.entity.Role.STUDENT) {
-        throw new RuntimeException(
-                "Students cannot upload notice attachments"
-        );
+            throw new RuntimeException(
+                    "Students cannot upload notice attachments"
+            );
         }
 
         String attachmentPath = noticeFileService.saveFile(file);
@@ -219,62 +237,60 @@ public class NoticeService {
         Notice updatedNotice = noticeRepository.save(notice);
 
         return convertToResponse(updatedNotice);
-        }
+    }
 
-        public Resource downloadAttachment(
-                UUID noticeId,
-                String userEmail
-        ) {
+    public Resource downloadAttachment(
+            UUID noticeId,
+            String userEmail
+    ) {
+
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new RuntimeException("Notice not found"));
 
         if (notice.getAttachmentPath() == null) {
-                throw new RuntimeException("No attachment found");
+            throw new RuntimeException("No attachment found");
         }
 
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // STUDENT: only their own section
         if (user.getRole() == com.campusconnect.entity.Role.STUDENT) {
 
-                Student student = studentRepository.findByUserEmail(userEmail);
+            Student student = studentRepository.findByUserEmail(userEmail);
 
-                if (student == null) {
+            if (student == null) {
                 throw new RuntimeException("Student profile not found");
-                }
+            }
 
-                if (!student.getSection().getId()
-                        .equals(notice.getTargetSection().getId())) {
+            if (!student.getSection().getId()
+                    .equals(notice.getTargetSection().getId())) {
 
                 throw new RuntimeException(
                         "Student cannot access this notice"
                 );
-                }
+            }
         }
 
-        // TEACHER: only assigned sections
         if (user.getRole() == com.campusconnect.entity.Role.TEACHER) {
 
-                boolean assigned =
-                        teacherAssignmentRepository
-                                .existsByTeacherIdAndSectionId(
-                                        user.getId(),
-                                        notice.getTargetSection().getId()
-                                );
+            boolean assigned =
+                    teacherAssignmentRepository
+                            .existsByTeacherIdAndSectionId(
+                                    user.getId(),
+                                    notice.getTargetSection().getId()
+                            );
 
-                if (!assigned) {
+            if (!assigned) {
                 throw new RuntimeException(
                         "Teacher is not assigned to this section"
                 );
-                }
+            }
         }
 
-        // ADMIN can access any notice
         return noticeFileService.loadFile(
                 notice.getAttachmentPath()
         );
-        }
+    }
 
     public void deleteNotice(UUID id, String creatorEmail) {
 

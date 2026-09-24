@@ -7,6 +7,7 @@ import com.campusconnect.model.CourseMaterial;
 import com.campusconnect.model.Section;
 import com.campusconnect.model.Student;
 import com.campusconnect.model.Subject;
+import com.campusconnect.model.NotificationType;
 import com.campusconnect.repository.CourseMaterialRepository;
 import com.campusconnect.repository.SectionRepository;
 import com.campusconnect.repository.StudentRepository;
@@ -33,6 +34,7 @@ public class CourseMaterialService {
     private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final StudentRepository studentRepository;
     private final CourseMaterialFileService courseMaterialFileService;
+    private final NotificationService notificationService;
 
     public CourseMaterialService(
             CourseMaterialRepository courseMaterialRepository,
@@ -41,7 +43,8 @@ public class CourseMaterialService {
             UserRepository userRepository,
             TeacherAssignmentRepository teacherAssignmentRepository,
             StudentRepository studentRepository,
-            CourseMaterialFileService courseMaterialFileService
+            CourseMaterialFileService courseMaterialFileService,
+            NotificationService notificationService
     ) {
         this.courseMaterialRepository = courseMaterialRepository;
         this.sectionRepository = sectionRepository;
@@ -52,6 +55,7 @@ public class CourseMaterialService {
         this.studentRepository = studentRepository;
         this.courseMaterialFileService =
                 courseMaterialFileService;
+        this.notificationService = notificationService;
     }
 
     // ---------------------------------------------------------
@@ -118,9 +122,23 @@ public class CourseMaterialService {
         material.setCreatedAt(now);
         material.setUpdatedAt(now);
 
-        return toResponse(
-                courseMaterialRepository.save(material)
+        CourseMaterial savedMaterial =
+                courseMaterialRepository.save(material);
+
+        // ---------------------------------------------------------
+        // DAY 22: AUTOMATIC NOTIFICATION
+        // ---------------------------------------------------------
+
+        notificationService.notifyStudentsInSection(
+                section.getId(),
+                "New Course Material",
+                "New study material has been uploaded: "
+                        + savedMaterial.getTitle(),
+                NotificationType.COURSE_MATERIAL,
+                "COURSE_MATERIAL:" + savedMaterial.getId()
         );
+
+        return toResponse(savedMaterial);
     }
 
     // ---------------------------------------------------------

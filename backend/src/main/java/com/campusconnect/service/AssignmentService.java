@@ -7,6 +7,7 @@ import com.campusconnect.model.Assignment;
 import com.campusconnect.model.Section;
 import com.campusconnect.model.Student;
 import com.campusconnect.model.Subject;
+import com.campusconnect.model.NotificationType;
 import com.campusconnect.repository.AssignmentRepository;
 import com.campusconnect.repository.SectionRepository;
 import com.campusconnect.repository.StudentRepository;
@@ -33,6 +34,7 @@ public class AssignmentService {
     private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final StudentRepository studentRepository;
     private final AssignmentFileService assignmentFileService;
+    private final NotificationService notificationService;
 
     public AssignmentService(
             AssignmentRepository assignmentRepository,
@@ -41,7 +43,8 @@ public class AssignmentService {
             UserRepository userRepository,
             TeacherAssignmentRepository teacherAssignmentRepository,
             StudentRepository studentRepository,
-            AssignmentFileService assignmentFileService
+            AssignmentFileService assignmentFileService,
+            NotificationService notificationService
     ) {
         this.assignmentRepository = assignmentRepository;
         this.sectionRepository = sectionRepository;
@@ -50,6 +53,7 @@ public class AssignmentService {
         this.teacherAssignmentRepository = teacherAssignmentRepository;
         this.studentRepository = studentRepository;
         this.assignmentFileService = assignmentFileService;
+        this.notificationService = notificationService;
     }
 
     public AssignmentResponse createAssignment(
@@ -98,9 +102,23 @@ public class AssignmentService {
         assignment.setCreatedAt(now);
         assignment.setUpdatedAt(now);
 
-        return toResponse(
-                assignmentRepository.save(assignment)
+        Assignment savedAssignment =
+                assignmentRepository.save(assignment);
+
+        // ---------------------------------------------------------
+        // DAY 22: AUTOMATIC NOTIFICATION
+        // ---------------------------------------------------------
+
+        notificationService.notifyStudentsInSection(
+                section.getId(),
+                "New Assignment",
+                "A new assignment has been posted: "
+                        + savedAssignment.getTitle(),
+                NotificationType.ASSIGNMENT,
+                "ASSIGNMENT:" + savedAssignment.getId()
         );
+
+        return toResponse(savedAssignment);
     }
 
     public List<AssignmentResponse> getAssignments(

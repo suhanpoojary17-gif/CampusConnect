@@ -27,20 +27,23 @@ public class StudentMarkService {
     private final StudentRepository studentRepository;
     private final UserRepository userRepository;
     private final TeacherAssignmentRepository teacherAssignmentRepository;
+    private final NotificationService notificationService;
 
-    public StudentMarkService(
-            StudentMarkRepository studentMarkRepository,
-            AssessmentRepository assessmentRepository,
-            StudentRepository studentRepository,
-            UserRepository userRepository,
-            TeacherAssignmentRepository teacherAssignmentRepository
-    ) {
+        public StudentMarkService(
+                StudentMarkRepository studentMarkRepository,
+                AssessmentRepository assessmentRepository,
+                StudentRepository studentRepository,
+                UserRepository userRepository,
+                TeacherAssignmentRepository teacherAssignmentRepository,
+                NotificationService notificationService
+        ) {
         this.studentMarkRepository = studentMarkRepository;
         this.assessmentRepository = assessmentRepository;
         this.studentRepository = studentRepository;
         this.userRepository = userRepository;
         this.teacherAssignmentRepository = teacherAssignmentRepository;
-    }
+        this.notificationService = notificationService;
+        }
 
     @Transactional
     public StudentMarkResponse saveMark(
@@ -70,13 +73,16 @@ public class StudentMarkService {
                 assessment.getMaximumMarks()
         );
 
+                var existingMark =
+                studentMarkRepository.findByAssessmentIdAndStudentId(
+                        assessmentId,
+                        student.getId()
+                );
+
+        boolean isUpdate = existingMark.isPresent();
+
         StudentMark studentMark =
-                studentMarkRepository
-                        .findByAssessmentIdAndStudentId(
-                                assessmentId,
-                                student.getId()
-                        )
-                        .orElseGet(StudentMark::new);
+                existingMark.orElseGet(StudentMark::new);
 
         studentMark.setAssessment(assessment);
         studentMark.setStudent(student);
@@ -86,7 +92,28 @@ public class StudentMarkService {
         StudentMark saved =
                 studentMarkRepository.save(studentMark);
 
-        return mapToResponse(saved);
+        String title = isUpdate
+                ? "Marks Updated"
+                : "Marks Added";
+
+        String message =
+                "Your marks for "
+                        + assessment.getTitle()
+                        + " have been "
+                        + (isUpdate ? "updated" : "added")
+                        + ": "
+                        + saved.getMarks()
+                        + "/"
+                        + assessment.getMaximumMarks();
+
+        notificationService.createNotification(
+                student.getUser().getId(),
+                title,
+                message,
+                com.campusconnect.model.NotificationType.MARKS
+        );
+
+return mapToResponse(saved);
     }
 
     @Transactional(readOnly = true)

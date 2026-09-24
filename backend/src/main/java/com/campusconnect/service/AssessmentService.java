@@ -14,6 +14,7 @@ import com.campusconnect.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.List;
 import java.util.UUID;
 
@@ -25,20 +26,23 @@ public class AssessmentService {
     private final SubjectRepository subjectRepository;
     private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public AssessmentService(
-            AssessmentRepository assessmentRepository,
-            SectionRepository sectionRepository,
-            SubjectRepository subjectRepository,
-            TeacherAssignmentRepository teacherAssignmentRepository,
-            UserRepository userRepository
-    ) {
+                AssessmentRepository assessmentRepository,
+                SectionRepository sectionRepository,
+                SubjectRepository subjectRepository,
+                TeacherAssignmentRepository teacherAssignmentRepository,
+                UserRepository userRepository,
+                NotificationService notificationService
+        ) {
         this.assessmentRepository = assessmentRepository;
         this.sectionRepository = sectionRepository;
         this.subjectRepository = subjectRepository;
         this.teacherAssignmentRepository = teacherAssignmentRepository;
         this.userRepository = userRepository;
-    }
+        this.notificationService = notificationService;
+        }
 
     @Transactional
     public AssessmentResponse createAssessment(
@@ -78,6 +82,15 @@ public class AssessmentService {
         assessment.setTeacher(teacher);
 
         Assessment saved = assessmentRepository.save(assessment);
+
+        notificationService.notifyStudentsInSection(
+                section.getId(),
+                "New Assessment",
+                "A new assessment has been created: "
+                        + saved.getTitle()
+                        + " (" + subject.getName() + ")",
+                com.campusconnect.model.NotificationType.ASSESSMENT
+        );
 
         return mapToResponse(saved);
     }
