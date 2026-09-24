@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -92,6 +93,33 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/performance/**")
                                 .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/exams/*/submit")
+                                .hasRole("TEACHER")        
+
+                        .requestMatchers("/api/exams/teacher/**")
+                                .hasRole("TEACHER")
+
+                        .requestMatchers("/api/exams/*/publish-result")
+                                .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/exams/bulk")
+                                .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/exams")
+                                .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.PUT, "/api/exams/*")
+                                .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/exams/*")
+                                .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/exams/**")
+                                .hasAnyRole("STUDENT", "TEACHER", "ADMIN")
+
+                        .requestMatchers("/api/results/**")
+                                .hasRole("STUDENT")
 
 
                         // Catch-all MUST be last
