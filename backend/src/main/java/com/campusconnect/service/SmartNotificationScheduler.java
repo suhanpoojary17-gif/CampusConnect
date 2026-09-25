@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.ZoneId;
 
 @Service
 public class SmartNotificationScheduler {
@@ -63,7 +64,8 @@ public class SmartNotificationScheduler {
      */
     private void sendAssignmentDeadlineNotifications() {
 
-        LocalDateTime now = LocalDateTime.now();
+        
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
 
         LocalDateTime next24Hours =
                 now.plusHours(24);
@@ -112,7 +114,7 @@ public class SmartNotificationScheduler {
     private void sendExamTomorrowNotifications() {
 
         LocalDate tomorrow =
-                LocalDate.now().plusDays(1);
+                LocalDate.now(ZoneId.systemDefault()).plusDays(1);
 
         List<Exam> exams =
                 examRepository.findByExamDate(tomorrow);
@@ -153,127 +155,96 @@ public class SmartNotificationScheduler {
      * Notify students whose subject attendance
      * is below 75%.
      */
-    private void sendLowAttendanceNotifications() {
+        private void sendLowAttendanceNotifications() {
+                List<Student> students = studentRepository.findAll();
 
-        List<Student> students =
-                studentRepository.findAll();
+                for (Student student : students) {
+                processStudentAttendance(student);
+                }
+        }
 
-        for (Student student : students) {
-
-            if (student.getUser() == null) {
-                continue;
-            }
-
-            List<Attendance> attendanceList =
-                    attendanceRepository.findByStudentId(
-                            student.getId()
-                    );
-
-            if (attendanceList.isEmpty()) {
-                continue;
-            }
-
-            /*
-             * Group attendance records by subject.
-             */
-            Map<UUID, List<Attendance>> attendanceBySubject =
-                    new LinkedHashMap<>();
-
-            for (Attendance attendance : attendanceList) {
-
-                if (attendance.getSubject() == null) {
-                    continue;
+        private void processStudentAttendance(Student student) {
+                if (student == null || student.getUser() == null) {
+                return;
                 }
 
-                UUID subjectId =
-                        attendance.getSubject().getId();
-
-                attendanceBySubject
-                        .computeIfAbsent(
-                                subjectId,
-                                key -> new java.util.ArrayList<>()
-                        )
-                        .add(attendance);
-            }
-
-            /*
-             * Check each subject independently.
-             */
-            for (List<Attendance> subjectAttendance :
-                    attendanceBySubject.values()) {
-
-                if (subjectAttendance.isEmpty()) {
-                    continue;
+                List<Attendance> attendanceList = attendanceRepository.findByStudentId(student.getId());
+                if (attendanceList == null || attendanceList.isEmpty()) {
+                return;
                 }
 
-                Subject subject =
-                        subjectAttendance
-                                .get(0)
-                                .getSubject();
+                Map<UUID, List<Attendance>> attendanceBySubject = groupAttendanceBySubject(attendanceList);
 
-                long totalClasses =
-                        subjectAttendance.size();
+                for (List<Attendance> subjectAttendance : attendanceBySubject.values()) {
+                checkAndNotifySubjectAttendance(student, subjectAttendance);
+                }
+        }
 
-                long presentClasses =
-                        subjectAttendance.stream()
-                                .filter(attendance ->
-                                        attendance.getStatus()
-                                                == AttendanceStatus.PRESENT
-                                )
-                                .count();
+        private Map<UUID, List<Attendance>> groupAttendanceBySubject(List<Attendance> attendanceList) {
+                Map<UUID, List<Attendance>> attendanceBySubject = new LinkedHashMap<>();
+
+                for (Attendance attendance : attendanceList) {
+                if (attendance != null && attendance.getSubject() != null) {
+                        UUID subjectId = attendance.getSubject().getId();
+                        attendanceBySubject
+                                .computeIfAbsent(subjectId, key -> new java.util.ArrayList<>())
+                                .add(attendance);
+                }
+                }
+
+                return attendanceBySubject;
+        }
+
+        private void checkAndNotifySubjectAttendance(Student student, List<Attendance> subjectAttendance) {
+                if (subjectAttendance == null || subjectAttendance.isEmpty()) {
+                return;
+                }
+
+                Subject subject = subjectAttendance.get(0).getSubject();
+                long totalClasses = subjectAttendance.size();
 
                 if (totalClasses == 0) {
-                    continue;
+                return;
                 }
 
-                double attendancePercentage =
-                        (presentClasses * 100.0)
-                                / totalClasses;
+                long presentClasses = subjectAttendance.stream()
+                        .filter(attendance -> attendance.getStatus() == AttendanceStatus.PRESENT)
+                        .count();
 
-                /*
-                 * Notify only when attendance
-                 * is below 75%.
-                 */
+                double attendancePercentage = (presentClasses * 100.0) / totalClasses;
+
                 if (attendancePercentage < 75.0) {
-
-                    double roundedPercentage =
-                            Math.round(
-                                    attendancePercentage * 100.0
-                            ) / 100.0;
-
-                    String title =
-                            "Low Attendance Alert";
-
-                    String message =
-                            "Your attendance in "
-                                    + subject.getName()
-                                    + " is "
-                                    + roundedPercentage
-                                    + "%. "
-                                    + "Your attendance is below "
-                                    + "the required 75%.";
-
-                    /*
-                     * One low-attendance notification
-                     * per student, subject, per day.
-                     */
-                    String eventKey =
-                            "LOW_ATTENDANCE:"
-                                    + student.getId()
-                                    + ":"
-                                    + subject.getId()
-                                    + ":"
-                                    + LocalDate.now();
-
-                    notificationService.createNotification(
-                            student.getUser().getId(),
-                            title,
-                            message,
-                            NotificationType.ATTENDANCE,
-                            eventKey
-                    );
+                sendLowAttendanceNotification(student, subject, attendancePercentage);
                 }
-            }
         }
-    }
+
+        private void sendLowAttendanceNotification(Student student, Subject subject, double attendancePercentage) {
+                double roundedPercentage = Math.round(attendancePercentage * 100.0) / 100.0;
+
+                String title = "Low Attendance Alert";
+                String message = "Your attendance in "
+                        + subject.getName()
+                        + " is "
+                        + roundedPercentage
+                        + "%. "
+                        + "Your attendance is below "
+                        + "the required 75%.";
+
+                // Explicit ZoneId specified to resolve java:S8688
+                String eventKey = "LOW_ATTENDANCE:"
+                        + student.getId()
+                        + ":"
+                        + subject.getId()
+                        + ":"
+                        + LocalDate.now(ZoneId.systemDefault());
+
+                notificationService.createNotification(
+                        student.getUser().getId(),
+                        title,
+                        message,
+                        NotificationType.ATTENDANCE,
+                        eventKey
+                );
+        }
+    
 }

@@ -1,5 +1,11 @@
 package com.campusconnect.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.campusconnect.dto.BusPassApplicationRequest;
 import com.campusconnect.dto.BusPassResponse;
 import com.campusconnect.entity.BusPass;
@@ -8,12 +14,6 @@ import com.campusconnect.entity.User;
 import com.campusconnect.model.BusPassStatus;
 import com.campusconnect.repository.BusPassRepository;
 import com.campusconnect.repository.UserRepository;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class BusPassService {
@@ -22,7 +22,7 @@ public class BusPassService {
     private final UserRepository userRepository;
 
     public BusPassService(BusPassRepository busPassRepository,
-                           UserRepository userRepository) {
+                          UserRepository userRepository) {
         this.busPassRepository = busPassRepository;
         this.userRepository = userRepository;
     }
@@ -35,7 +35,7 @@ public class BusPassService {
         if (busPassRepository.existsByStudentIdAndStatus(
                 studentId, BusPassStatus.APPROVED)) {
 
-            throw new RuntimeException(
+            throw new IllegalStateException(
                     "Student already has an active bus pass"
             );
         }
@@ -44,28 +44,28 @@ public class BusPassService {
         if (busPassRepository.existsByStudentIdAndStatus(
                 studentId, BusPassStatus.PENDING)) {
 
-            throw new RuntimeException(
+            throw new IllegalStateException(
                     "Student already has a pending bus pass application"
             );
         }
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() ->
-                        new RuntimeException("Student not found"));
+                        new IllegalArgumentException("Student not found"));
 
         // Make sure only students can apply
         if (student.getRole() != Role.STUDENT) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Only students can apply for a bus pass"
             );
         }
 
         if (request.getStartDate() == null) {
-            throw new RuntimeException("Start date is required");
+            throw new IllegalArgumentException("Start date is required");
         }
 
-        if (request.getStartDate().isBefore(LocalDate.now())) {
-            throw new RuntimeException(
+        if (request.getStartDate().isBefore(LocalDate.now(ZoneId.systemDefault()))) {
+            throw new IllegalArgumentException(
                     "Start date cannot be in the past"
             );
         }
@@ -73,19 +73,19 @@ public class BusPassService {
         if (request.getRoute() == null ||
                 request.getRoute().trim().isEmpty()) {
 
-            throw new RuntimeException("Route is required");
+            throw new IllegalArgumentException("Route is required");
         }
 
         if (request.getPaymentReceiptNo() == null ||
                 request.getPaymentReceiptNo().trim().isEmpty()) {
 
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Payment receipt number is required"
             );
         }
 
         if (request.getPaymentDate() == null) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Payment date is required"
             );
         }
@@ -93,7 +93,7 @@ public class BusPassService {
         if (request.getPaymentAmount() == null ||
                 request.getPaymentAmount().signum() <= 0) {
 
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Valid payment amount is required"
             );
         }
@@ -134,7 +134,7 @@ public class BusPassService {
         List<BusPass> passes =
                 busPassRepository.findByStudentId(studentId);
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
 
         for (BusPass pass : passes) {
 
@@ -148,7 +148,7 @@ public class BusPassService {
 
         return passes.stream()
                 .map(this::convertToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BusPassResponse convertToResponse(BusPass busPass) {

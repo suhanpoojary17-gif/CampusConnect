@@ -2,7 +2,6 @@ package com.campusconnect.entity;
 
 import com.campusconnect.model.Subject;
 import com.campusconnect.model.Student;
-import com.campusconnect.entity.User;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;

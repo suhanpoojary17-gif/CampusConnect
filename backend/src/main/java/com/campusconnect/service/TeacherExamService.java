@@ -1,10 +1,17 @@
 package com.campusconnect.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.campusconnect.dto.ExamMarkEntryRequest;
 import com.campusconnect.dto.ExamMarkResponse;
 import com.campusconnect.dto.ExamResponse;
 import com.campusconnect.entity.Role;
-import com.campusconnect.entity.TeacherAssignment;
 import com.campusconnect.entity.User;
 import com.campusconnect.model.Exam;
 import com.campusconnect.model.ExamMark;
@@ -14,14 +21,7 @@ import com.campusconnect.repository.ExamRepository;
 import com.campusconnect.repository.StudentRepository;
 import com.campusconnect.repository.TeacherAssignmentRepository;
 import com.campusconnect.repository.UserRepository;
-import org.springframework.stereotype.Service;
-
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.time.ZoneId;
 
 @Service
 public class TeacherExamService {
@@ -56,7 +56,7 @@ public class TeacherExamService {
         return examRepository.findAll()
                 .stream()
                 .filter(exam ->
-                        exam.getExamDate().isBefore(LocalDate.now())
+                        exam.getExamDate().isBefore(LocalDate.now(ZoneId.systemDefault()))
                 )
                 .filter(exam ->
                         teacherAssignmentRepository
@@ -100,19 +100,19 @@ public class TeacherExamService {
         for (ExamMarkEntryRequest entry : entries) {
 
             if (!validStudentIds.contains(entry.getStudentId())) {
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                         "Student does not belong to the exam section"
                 );
             }
 
             if (entry.getMarks().compareTo(BigDecimal.ZERO) < 0) {
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                         "Marks cannot be negative"
                 );
             }
 
             if (entry.getMarks().compareTo(exam.getMaximumMarks()) > 0) {
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                         "Marks cannot exceed maximum marks of "
                                 + exam.getMaximumMarks()
                 );
@@ -149,7 +149,7 @@ public class TeacherExamService {
 
             examMark.setMarks(entry.getMarks());
             examMark.setGradedAt(
-                    java.time.LocalDateTime.now()
+                    java.time.LocalDateTime.now(ZoneId.systemDefault())
             );
 
             ExamMark savedExamMark =
@@ -195,11 +195,11 @@ public class TeacherExamService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found")
+                        new IllegalArgumentException("User not found")
                 );
 
         if (user.getRole() != Role.TEACHER) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Only teachers can perform this action"
             );
         }
@@ -209,8 +209,8 @@ public class TeacherExamService {
 
     private void validateExamDatePassed(Exam exam) {
 
-        if (!exam.getExamDate().isBefore(LocalDate.now())) {
-            throw new RuntimeException(
+        if (!exam.getExamDate().isBefore(LocalDate.now(ZoneId.systemDefault()))) {
+            throw new IllegalArgumentException(
                     "Exam marks can only be entered after the exam date"
             );
         }
@@ -230,7 +230,7 @@ public class TeacherExamService {
                         );
 
         if (!assigned) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "You are not assigned to this subject for this section"
             );
         }
