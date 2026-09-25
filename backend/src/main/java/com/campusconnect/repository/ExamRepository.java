@@ -1,6 +1,8 @@
 package com.campusconnect.repository;
 
 import com.campusconnect.model.Exam;
+import com.campusconnect.model.ExamResultStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
@@ -35,4 +37,5 @@ public interface ExamRepository extends JpaRepository<Exam, UUID> {
     );
 
     List<Exam> findByExamDate(LocalDate examDate);
+    long countByResultStatus(ExamResultStatus resultStatus);
 }

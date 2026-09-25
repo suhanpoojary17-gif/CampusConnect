@@ -121,6 +121,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/results/**")
                                 .hasRole("STUDENT")
 
+                        // Admin dashboard access
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
 
                         // Catch-all MUST be last
                         .anyRequest().authenticated()
