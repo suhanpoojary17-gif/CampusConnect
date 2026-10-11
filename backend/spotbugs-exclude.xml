@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-    <!-- Suppress entire analysis categories for a clean 0-warning baseline -->
+    <!-- Suppress Spring framework endpoint annotations to keep reports focused on real bugs -->
     <Match>
-        <Bug category="SECURITY" />
-    </Match>
-    <Match>
-        <Bug category="MALICIOUS_CODE" />
-    </Match>
-    <Match>
-        <Bug category="INTERNATIONALIZATION" />
-    </Match>
-    <Match>
-        <Bug category="BAD_PRACTICE" />
-    </Match>
-    <Match>
-        <Bug category="DODGY" />
+        <Bug pattern="SPRING_ENDPOINT" />
     </Match>
 </FindBugsFilter>
