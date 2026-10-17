@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Night -->
+    <color name="primary_accent">#FF4500</color>
+    <color name="accent_hover">#E03D00</color>
+
+    <color name="main_background">#1A1A1B</color>
+    <color name="card_surface">#272729</color>
+
+    <color name="primary_text">#D7DADC</color>
+    <color name="secondary_text">#818384</color>
+
+    <color name="card_divider">#343536</color>
+
+    <!-- Status Colors -->
+    <color name="status_safe">#10B981</color>
+    <color name="status_warning">#F59E0B</color>
+    <color name="status_high_risk">#EF4444</color>
+
+    <!-- Common UI Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+
+</resources>

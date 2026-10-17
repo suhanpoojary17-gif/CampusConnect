@@ -33,7 +33,7 @@ class SecurityAuthorizationTest {
     @WithMockUser(username = "student_user", roles = {"STUDENT"})
     void studentUser_ForbiddenFromAdminBusPass() throws Exception {
         // Verifies a student cannot access admin-level bus pass management
-        mockMvc.perform(get("/api/admin/bus-pass") // Maps to AdminBusPassController
+        mockMvc.perform(get("/api/admin/bus-passes") // Maps to AdminBusPassController
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden()); // Expects 403 Forbidden
     }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/tvStatusBadge"
+ android:layout_width="wrap_content"
+ android:layout_height="wrap_content"
+ android:background="@drawable/bg_status_safe"
+ android:gravity="center"
+ android:paddingStart="@dimen/badge_horizontal_padding"
+ android:paddingEnd="@dimen/badge_horizontal_padding"
+ android:paddingTop="@dimen/badge_vertical_padding"
+ android:paddingBottom="@dimen/badge_vertical_padding"
+ android:text="SAFE"
+ android:textColor="@color/white"
+ android:textSize="@dimen/caption_text_size"
+ android:textStyle="bold" />

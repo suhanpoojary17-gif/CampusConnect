@@ -3,6 +3,9 @@ package com.campusconnect.service;
 import com.campusconnect.model.Student;
 import com.campusconnect.repository.StudentRepository;
 import org.springframework.stereotype.Service;
+import com.campusconnect.dto.StudentProfileResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,4 +54,30 @@ public class StudentService {
         Student student = getStudentById(id);
         studentRepository.delete(student);
     }
+
+    public StudentProfileResponse getMyProfile(String email) {
+
+    Student student = studentRepository.findByUserEmail(email);
+
+    if (student == null) {
+        throw new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Student profile not found"
+        );
+    }
+
+    if (student.getSection() == null) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Student is not assigned to a section"
+        );
+    }
+
+    return new StudentProfileResponse(
+            student.getId(),
+            student.getName(),
+            student.getSection().getId(),
+            student.getSection().getName()
+    );
+}
 }

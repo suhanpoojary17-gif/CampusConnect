@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:layout_width="match_parent"
+ android:layout_height="wrap_content"
+ android:gravity="center"
+ android:orientation="vertical"
+ android:padding="24dp">
+
+```
+<TextView
+    android:id="@+id/tvEmptyTitle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:text="Nothing to display"
+    android:textColor="@color/primary_text"
+    android:textSize="@dimen/subheading_text_size"
+    android:textStyle="bold" />
+
+<TextView
+    android:id="@+id/tvEmptyMessage"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/small_spacing"
+    android:gravity="center"
+    android:text="There is no information available right now."
+    android:textColor="@color/secondary_text"
+    android:textSize="@dimen/body_text_size" />
+```
+
+</LinearLayout>

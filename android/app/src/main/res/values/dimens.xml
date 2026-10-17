@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+```
+<!-- Screen spacing -->
+<dimen name="screen_padding">20dp</dimen>
+<dimen name="card_padding">16dp</dimen>
+
+<!-- Corner radii -->
+<dimen name="card_radius">16dp</dimen>
+<dimen name="button_radius">12dp</dimen>
+<dimen name="badge_radius">8dp</dimen>
+
+<!-- Spacing -->
+<dimen name="section_spacing">24dp</dimen>
+<dimen name="item_spacing">12dp</dimen>
+<dimen name="small_spacing">8dp</dimen>
+
+<!-- Component dimensions -->
+<dimen name="button_height">52dp</dimen>
+<dimen name="icon_size">24dp</dimen>
+<dimen name="badge_vertical_padding">6dp</dimen>
+<dimen name="badge_horizontal_padding">10dp</dimen>
+
+<!-- Typography -->
+<dimen name="heading_text_size">20sp</dimen>
+<dimen name="subheading_text_size">16sp</dimen>
+<dimen name="body_text_size">14sp</dimen>
+<dimen name="caption_text_size">12sp</dimen>
+```
+
+</resources>

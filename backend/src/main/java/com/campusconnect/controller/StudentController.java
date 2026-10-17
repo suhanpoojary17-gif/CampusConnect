@@ -5,6 +5,9 @@ import com.campusconnect.service.StudentService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.campusconnect.dto.StudentProfileResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.UUID;
@@ -70,5 +73,15 @@ public class StudentController {
 
         studentService.deleteStudent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<StudentProfileResponse> getMyProfile(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                studentService.getMyProfile(authentication.getName())
+        );
     }
 }
