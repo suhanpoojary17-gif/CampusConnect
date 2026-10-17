@@ -3,6 +3,9 @@ package com.campusconnect.app.features.academics;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -12,7 +15,10 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -25,6 +31,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -47,8 +54,45 @@ public class CourseMaterialsFragment extends Fragment {
     private ProgressBar progressBar;
     private Button retryButton;
 
+    private ActivityResultLauncher<String> createDocumentLauncher;
+
+    private String pendingDownloadMaterialId;
+    private String pendingDownloadFileName;
+
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
     public CourseMaterialsFragment() {
         // Required empty constructor.
+    }
+
+    @Override
+    public void onCreate(@Nullable android.os.Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        createDocumentLauncher = registerForActivityResult(
+                new ActivityResultContracts.CreateDocument(
+                        "application/octet-stream"
+                ),
+                uri -> {
+                    String materialId = pendingDownloadMaterialId;
+                    String fileName = pendingDownloadFileName;
+
+                    pendingDownloadMaterialId = null;
+                    pendingDownloadFileName = null;
+
+                    if (uri == null) {
+                        // The user cancelled the save dialog.
+                        return;
+                    }
+
+                    if (TextUtils.isEmpty(materialId)) {
+                        showToast("Unable to identify the course material.");
+                        return;
+                    }
+
+                    downloadAttachment(materialId, fileName, uri);
+                }
+        );
     }
 
     @Nullable
@@ -150,6 +194,7 @@ public class CourseMaterialsFragment extends Fragment {
 
         retryButton = new Button(context);
         retryButton.setText("Retry");
+        retryButton.setAllCaps(false);
         retryButton.setVisibility(View.GONE);
         retryButton.setOnClickListener(v -> loadMaterials());
 
@@ -190,7 +235,7 @@ public class CourseMaterialsFragment extends Fragment {
     }
 
     private void loadMaterials() {
-        if (materialsContainer == null) {
+        if (materialsContainer == null || !isAdded()) {
             return;
         }
 
@@ -247,11 +292,7 @@ public class CourseMaterialsFragment extends Fragment {
                         )
                 );
 
-                if (!isAdded()) {
-                    return;
-                }
-
-                requireActivity().runOnUiThread(() -> {
+                mainHandler.post(() -> {
                     if (!isAdded() || materialsContainer == null) {
                         return;
                     }
@@ -260,11 +301,7 @@ public class CourseMaterialsFragment extends Fragment {
                 });
 
             } catch (Exception e) {
-                if (!isAdded()) {
-                    return;
-                }
-
-                requireActivity().runOnUiThread(() -> {
+                mainHandler.post(() -> {
                     if (!isAdded()) {
                         return;
                     }
@@ -388,30 +425,248 @@ public class CourseMaterialsFragment extends Fragment {
             );
 
             if (hasAttachment) {
-                TextView attachmentNote = new TextView(requireContext());
-                attachmentNote.setText(
-                        "Attachment downloading will be enabled "
-                                + "in the next integration step."
-                );
-                attachmentNote.setTextColor(
-                        requireContext().getColor(R.color.secondary_text)
-                );
-                attachmentNote.setTextSize(12);
+                Button downloadButton = new Button(requireContext());
+                downloadButton.setText("Download Attachment");
+                downloadButton.setAllCaps(false);
 
-                LinearLayout.LayoutParams noteParams =
+                LinearLayout.LayoutParams buttonParams =
                         new LinearLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.WRAP_CONTENT
                         );
-                noteParams.topMargin = dp(6);
 
-                card.addView(attachmentNote, noteParams);
+                buttonParams.topMargin = dp(12);
+
+                String materialId = item.optString("id", "");
+
+                downloadButton.setOnClickListener(v -> {
+                    if (TextUtils.isEmpty(materialId)
+                            || "null".equalsIgnoreCase(materialId)) {
+                        showToast("Material ID is unavailable.");
+                        return;
+                    }
+
+                    if (createDocumentLauncher == null) {
+                        showToast("File saving is not available right now.");
+                        return;
+                    }
+
+                    pendingDownloadMaterialId = materialId;
+                    pendingDownloadFileName =
+                            buildFileName(title, attachmentPath);
+
+                    createDocumentLauncher.launch(
+                            pendingDownloadFileName
+                    );
+                });
+
+                card.addView(downloadButton, buttonParams);
             }
         }
 
         if (statusText != null) {
             statusText.setVisibility(View.GONE);
         }
+    }
+
+    private String buildFileName(String title, String attachmentPath) {
+        String safeName = TextUtils.isEmpty(title)
+                ? "course_material"
+                : title.trim();
+
+        safeName = safeName.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        if (safeName.isEmpty()) {
+            safeName = "course_material";
+        }
+
+        String extension = "";
+
+        if (isAvailable(attachmentPath)) {
+            String path = attachmentPath;
+            int queryIndex = path.indexOf('?');
+
+            if (queryIndex >= 0) {
+                path = path.substring(0, queryIndex);
+            }
+
+            int slashIndex = path.lastIndexOf('/');
+            int dotIndex = path.lastIndexOf('.');
+
+            if (dotIndex > slashIndex && dotIndex < path.length() - 1) {
+                String candidate = path.substring(dotIndex);
+
+                if (candidate.matches("\\.[A-Za-z0-9]{1,10}")) {
+                    extension = candidate;
+                }
+            }
+        }
+
+        return safeName + "_attachment" + extension;
+    }
+
+    private void downloadAttachment(
+            String materialId,
+            String fileName,
+            Uri destinationUri
+    ) {
+        if (!isAdded()) {
+            return;
+        }
+
+        Context appContext =
+                requireContext().getApplicationContext();
+
+        SharedPreferences preferences =
+                appContext.getSharedPreferences(
+                        PREFS_NAME,
+                        Context.MODE_PRIVATE
+                );
+
+        String token = preferences.getString(TOKEN_KEY, null);
+
+        if (TextUtils.isEmpty(token)) {
+            showToast("Your session has expired. Please sign in again.");
+            return;
+        }
+
+        if (executor == null || executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+
+        showToast("Downloading attachment...");
+
+        executor.execute(() -> {
+            HttpURLConnection connection = null;
+
+            try {
+                URL url = new URL(
+                        BASE_URL
+                                + "/api/course-materials/"
+                                + materialId
+                                + "/attachment"
+                );
+
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(30000);
+
+                connection.setRequestProperty(
+                        "Authorization",
+                        "Bearer " + token
+                );
+
+                connection.setRequestProperty(
+                        "Accept",
+                        "*/*"
+                );
+
+                int status = connection.getResponseCode();
+
+                if (status < 200 || status >= 300) {
+                    String errorMessage = readErrorResponse(connection);
+
+                    throw new IllegalStateException(
+                            "Download failed with HTTP "
+                                    + status
+                                    + (TextUtils.isEmpty(errorMessage)
+                                    ? ""
+                                    : ": " + errorMessage)
+                    );
+                }
+
+                try (InputStream input = connection.getInputStream();
+                     OutputStream output =
+                             appContext.getContentResolver()
+                                     .openOutputStream(destinationUri, "w")) {
+
+                    if (output == null) {
+                        throw new IllegalStateException(
+                                "Could not open the selected save location."
+                        );
+                    }
+
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+
+                    while ((bytesRead = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, bytesRead);
+                    }
+
+                    output.flush();
+                }
+
+                showToast("Attachment saved successfully.");
+
+            } catch (Exception e) {
+                String error = e.getMessage();
+
+                showToast(
+                        "Unable to download attachment."
+                                + (TextUtils.isEmpty(error)
+                                ? ""
+                                : " " + error)
+                );
+
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
+    }
+
+    private String readErrorResponse(HttpURLConnection connection) {
+        InputStream stream = null;
+
+        try {
+            stream = connection.getErrorStream();
+
+            if (stream == null) {
+                return "";
+            }
+
+            StringBuilder result = new StringBuilder();
+
+            try (BufferedReader reader =
+                         new BufferedReader(
+                                 new InputStreamReader(
+                                         stream,
+                                         StandardCharsets.UTF_8
+                                 )
+                         )) {
+
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+            }
+
+            return result.toString();
+
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private void showToast(String message) {
+        Context context = getContext();
+
+        if (context == null) {
+            return;
+        }
+
+        Context appContext = context.getApplicationContext();
+
+        mainHandler.post(() ->
+                Toast.makeText(
+                        appContext,
+                        message,
+                        Toast.LENGTH_LONG
+                ).show()
+        );
     }
 
     private LinearLayout createCard() {
@@ -552,7 +807,7 @@ public class CourseMaterialsFragment extends Fragment {
             return;
         }
 
-        requireActivity().runOnUiThread(() -> {
+        mainHandler.post(() -> {
             if (!isAdded() || statusText == null) {
                 return;
             }
