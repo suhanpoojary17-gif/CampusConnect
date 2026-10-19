@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.util.Log;
 import com.campusconnect.app.navigation.AppNavigator;
+import com.campusconnect.app.core.theme.ThemeManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -60,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyTheme(this);
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);

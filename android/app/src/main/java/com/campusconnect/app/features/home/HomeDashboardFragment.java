@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,7 +15,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.campusconnect.app.R;
-import com.campusconnect.app.StudentDashboardActivity;
+import com.campusconnect.app.features.notifications.NotificationsFragment;
+import com.campusconnect.app.features.profile.StudentProfileFragment;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -121,12 +123,20 @@ public class HomeDashboardFragment extends Fragment {
         notificationsContent =
                 view.findViewById(R.id.notificationsContent);
 
+        // Top Navigation Header Buttons (Profile Left, Notifications Right)
+        ImageButton btnProfile = view.findViewById(R.id.btnProfile);
+        ImageButton btnNotifications = view.findViewById(R.id.btnNotifications);
+
+        btnProfile.setOnClickListener(v -> openProfileScreen());
+        btnNotifications.setOnClickListener(v -> openNotificationsScreen());
+
         View attendanceCard = view.findViewById(R.id.attendanceCard);
         View timetableCard = view.findViewById(R.id.timetableCard);
         View assignmentsCard = view.findViewById(R.id.assignmentsCard);
         View noticesCard = view.findViewById(R.id.noticesCard);
         View performanceCard = view.findViewById(R.id.performanceCard);
         View notificationsCard = view.findViewById(R.id.notificationsCard);
+        View chatbotCard = view.findViewById(R.id.chatbotCard);
 
         View.OnClickListener academicsClickListener = clickedView -> {
             if (navigationListener != null) {
@@ -134,11 +144,14 @@ public class HomeDashboardFragment extends Fragment {
             }
         };
 
-        View.OnClickListener notificationsClickListener = clickedView -> {
-            if (navigationListener != null) {
-                navigationListener.onHomeCardSelected(
-                        R.id.nav_notifications
-                );
+        // Updated Direct Notifications/Notices Navigation Handler
+        View.OnClickListener directNotificationsClickListener = clickedView -> {
+            if (isAdded()) {
+                getParentFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragmentContainer, new NotificationsFragment())
+                        .addToBackStack(null)
+                        .commit();
             }
         };
 
@@ -146,12 +159,55 @@ public class HomeDashboardFragment extends Fragment {
         timetableCard.setOnClickListener(academicsClickListener);
         assignmentsCard.setOnClickListener(academicsClickListener);
         performanceCard.setOnClickListener(academicsClickListener);
-        noticesCard.setOnClickListener(notificationsClickListener);
-        notificationsCard.setOnClickListener(notificationsClickListener);
+        
+        // Cards now correctly route directly to NotificationsFragment
+        noticesCard.setOnClickListener(directNotificationsClickListener);
+        notificationsCard.setOnClickListener(directNotificationsClickListener);
+        
+        chatbotCard.setOnClickListener(v -> openChatbot());
 
         executor = Executors.newFixedThreadPool(4);
 
         loadDashboard();
+    }
+
+    private void openProfileScreen() {
+        if (!isAdded()) {
+            return;
+        }
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, new StudentProfileFragment())
+                .addToBackStack(null)
+                .commit();
+    }
+
+    private void openNotificationsScreen() {
+        if (!isAdded()) {
+            return;
+        }
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, new NotificationsFragment())
+                .addToBackStack(null)
+                .commit();
+    }
+
+    private void openChatbot() {
+        if (!isAdded()) {
+            return;
+        }
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(
+                        R.id.fragmentContainer,
+                        new com.campusconnect.app.features.chatbot.ChatbotFragment()
+                )
+                .addToBackStack(null)
+                .commit();
     }
 
     private void loadDashboard() {
@@ -647,7 +703,7 @@ public class HomeDashboardFragment extends Fragment {
 
                         String subjectLine = String.format(
                                 Locale.getDefault(),
-                                "\n• %s (%s)\n  Marks: %.0f / %.0f (%.1f%%) • %s",
+                                "\n%s (%s)\nMarks: %.0f / %.0f (%.1f%%) • %s",
                                 subName,
                                 subCode,
                                 subObt,

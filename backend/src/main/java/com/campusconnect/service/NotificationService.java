@@ -197,4 +197,27 @@ public class NotificationService {
 
         return notificationRepository.save(notification);
     }
+
+    public int markAllAsRead(Long userId) {
+
+    List<Notification> notifications =
+            notificationRepository
+                    .findByUserIdOrderByCreatedAtDesc(userId);
+
+    int updatedCount = 0;
+
+    for (Notification notification : notifications) {
+
+        if (!notification.isRead()) {
+            notification.setRead(true);
+            updatedCount++;
+        }
+    }
+
+    if (updatedCount > 0) {
+        notificationRepository.saveAll(notifications);
+    }
+
+    return updatedCount;
+}
 }

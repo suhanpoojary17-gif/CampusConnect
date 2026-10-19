@@ -13,4 +13,5 @@
  android:text="SAFE"
  android:textColor="@color/white"
  android:textSize="@dimen/caption_text_size"
+ android:fitsSystemWindows="true"
  android:textStyle="bold" />

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark Theme Border -->
+    <item android:color="#2D3748" android:state_enabled="true" />
+    <!-- Light Theme Border -->
+    <item android:color="#EDEFF1" />
+</selector>

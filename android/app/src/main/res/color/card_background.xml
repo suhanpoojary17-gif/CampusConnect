@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dark Theme (Dark) / Night mode -->
+    <item android:color="#1F242D" android:state_enabled="true" />
+    <!-- Default / Light Mode -->
+    <item android:color="#FFFFFF" />
+</selector>

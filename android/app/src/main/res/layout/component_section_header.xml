@@ -5,6 +5,7 @@
  android:layout_height="wrap_content"
  android:gravity="center_vertical"
  android:orientation="horizontal"
+ android:fitsSystemWindows="true"
  android:paddingTop="@dimen/small_spacing"
  android:paddingBottom="@dimen/small_spacing">
 

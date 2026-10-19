@@ -5,6 +5,7 @@
  android:layout_height="wrap_content"
  android:gravity="center"
  android:orientation="vertical"
+ android:fitsSystemWindows="true"
  android:padding="24dp">
 
 ```

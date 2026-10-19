@@ -10,8 +10,8 @@ public final class ThemeManager {
     private static final String PREFS_NAME = "campusconnect_settings";
     private static final String KEY_THEME = "app_theme";
 
-    public static final String ALIEN_LIGHT = "alien_light";
-    public static final String NIGHT = "night";
+    public static final String LIGHT = "light";
+    public static final String DARK = "dark";
     public static final String SYSTEM = "system";
 
     private ThemeManager() {
@@ -30,12 +30,12 @@ public final class ThemeManager {
     public static void applyTheme(Context context) {
         String selectedTheme = getTheme(context);
 
-        if (NIGHT.equals(selectedTheme)) {
+        if (DARK.equals(selectedTheme)) {
             AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_YES
             );
 
-        } else if (ALIEN_LIGHT.equals(selectedTheme)) {
+        } else if (LIGHT.equals(selectedTheme)) {
             AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_NO
             );
