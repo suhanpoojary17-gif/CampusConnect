@@ -2,7 +2,9 @@ package com.campusconnect.app.features.academics;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -10,12 +12,16 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
 import com.campusconnect.app.R;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,6 +40,11 @@ public class AttendanceFragment extends Fragment {
     private static final String PREFS_NAME = "campusconnect_session";
     private static final String TOKEN_KEY = "jwt_token";
 
+    // Design Specification Tokens
+    private static final int COLOR_CARD_CREAM = Color.parseColor("#E6DFD3");
+    private static final int COLOR_TEXT_PRIMARY = Color.parseColor("#1A1A1A");
+    private static final int COLOR_TEXT_SECONDARY = Color.parseColor("#333333");
+
     private ExecutorService executor;
     private LinearLayout contentContainer;
     private TextView loadingText;
@@ -48,18 +59,15 @@ public class AttendanceFragment extends Fragment {
             @NonNull android.view.LayoutInflater inflater,
             @Nullable android.view.ViewGroup container,
             @Nullable Bundle savedInstanceState) {
-
         Context context = requireContext();
 
         ScrollView scrollView = new ScrollView(context);
         scrollView.setFillViewport(true);
-        scrollView.setBackgroundColor(
-                context.getColor(R.color.main_background));
+        scrollView.setBackgroundColor(context.getColor(R.color.main_background));
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(20), dp(20), dp(20), dp(24));
-
         scrollView.addView(root);
 
         TextView appTitle = new TextView(context);
@@ -67,7 +75,7 @@ public class AttendanceFragment extends Fragment {
         appTitle.setTextSize(12);
         appTitle.setLetterSpacing(0.12f);
         appTitle.setTypeface(null, Typeface.BOLD);
-        appTitle.setTextColor(context.getColor(R.color.primary_accent));
+        appTitle.setTextColor(context.getColor(R.color.primary_text));
         root.addView(appTitle);
 
         TextView heading = new TextView(context);
@@ -75,7 +83,6 @@ public class AttendanceFragment extends Fragment {
         heading.setTextSize(28);
         heading.setTypeface(null, Typeface.BOLD);
         heading.setTextColor(context.getColor(R.color.primary_text));
-
         LinearLayout.LayoutParams headingParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -87,12 +94,12 @@ public class AttendanceFragment extends Fragment {
         subtitle.setText("Track your attendance and stay on target.");
         subtitle.setTextSize(14);
         subtitle.setTextColor(context.getColor(R.color.secondary_text));
-
         LinearLayout.LayoutParams subtitleParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
         subtitleParams.topMargin = dp(4);
+        subtitleParams.bottomMargin = dp(14);
         root.addView(subtitle, subtitleParams);
 
         loadingText = new TextView(context);
@@ -115,7 +122,6 @@ public class AttendanceFragment extends Fragment {
             @NonNull View view,
             @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         executor = Executors.newSingleThreadExecutor();
         loadAttendance();
     }
@@ -123,9 +129,7 @@ public class AttendanceFragment extends Fragment {
     private void loadAttendance() {
         SharedPreferences preferences = requireContext()
                 .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-
         String token = preferences.getString(TOKEN_KEY, "");
-
         if (token == null || token.trim().isEmpty()) {
             showMessage("Your session has expired. Please sign in again.");
             return;
@@ -134,12 +138,10 @@ public class AttendanceFragment extends Fragment {
         executor.execute(() -> {
             List<JSONObject> records = new ArrayList<>();
             String error = null;
-
             try {
                 // Resolve the signed-in student's ID from the backend.
                 JSONObject student = new JSONObject(
                         getString("/api/students/me", token));
-
                 String studentId = student.optString("studentId", "");
 
                 // Retrieve attendance using the authenticated student's ID.
@@ -148,14 +150,12 @@ public class AttendanceFragment extends Fragment {
                                 "/api/attendance/student/"
                                         + studentId + "/all-subjects",
                                 token));
-
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject item = array.optJSONObject(i);
                     if (item != null) {
                         records.add(item);
                     }
                 }
-
             } catch (Exception e) {
                 error = e.getMessage() == null
                         ? "Unable to load attendance."
@@ -163,23 +163,19 @@ public class AttendanceFragment extends Fragment {
             }
 
             final String finalError = error;
-
             if (isAdded()) {
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     loadingText.setVisibility(View.GONE);
                     contentContainer.removeAllViews();
-
                     if (finalError != null) {
                         addMessageCard(
                                 "Unable to load attendance",
                                 finalError);
                         return;
                     }
-
                     renderAttendance(records);
                 });
             }
@@ -196,7 +192,6 @@ public class AttendanceFragment extends Fragment {
 
         int totalPresent = 0;
         int totalClasses = 0;
-
         for (JSONObject record : records) {
             totalPresent += record.optInt("presentClasses", 0);
             totalClasses += record.optInt("totalClasses", 0);
@@ -205,7 +200,6 @@ public class AttendanceFragment extends Fragment {
         double overallPercentage = totalClasses > 0
                 ? (totalPresent * 100.0) / totalClasses
                 : 0.0;
-
         String overallStatus = getRiskLevel(overallPercentage);
 
         LinearLayout overallCard = createCard("Overall attendance");
@@ -222,7 +216,6 @@ public class AttendanceFragment extends Fragment {
         percentage.setTypeface(null, Typeface.BOLD);
         percentage.setTextColor(
                 requireContext().getColor(getStatusColor(overallStatus)));
-
         overallCard.addView(percentage);
 
         TextView status = new TextView(requireContext());
@@ -231,7 +224,6 @@ public class AttendanceFragment extends Fragment {
         status.setTypeface(null, Typeface.BOLD);
         status.setTextColor(
                 requireContext().getColor(getStatusColor(overallStatus)));
-
         LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -246,9 +238,7 @@ public class AttendanceFragment extends Fragment {
                                 + totalClasses + " recorded classes"
                         : "No classes have been recorded yet.");
         totals.setTextSize(14);
-        totals.setTextColor(
-                requireContext().getColor(R.color.secondary_text));
-
+        totals.setTextColor(COLOR_TEXT_SECONDARY);
         LinearLayout.LayoutParams totalsParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -260,11 +250,9 @@ public class AttendanceFragment extends Fragment {
             ProgressBar progressBar = new ProgressBar(
                     requireContext(), null,
                     android.R.attr.progressBarStyleHorizontal);
-
             progressBar.setMax(100);
             progressBar.setProgress(
                     (int) Math.round(overallPercentage));
-
             LinearLayout.LayoutParams progressParams =
                     new LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -278,9 +266,7 @@ public class AttendanceFragment extends Fragment {
                 "Overall percentage is calculated from the combined "
                         + "present and total class counts.");
         calculationNote.setTextSize(12);
-        calculationNote.setTextColor(
-                requireContext().getColor(R.color.secondary_text));
-
+        calculationNote.setTextColor(COLOR_TEXT_SECONDARY);
         LinearLayout.LayoutParams noteParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -292,7 +278,8 @@ public class AttendanceFragment extends Fragment {
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardParams.bottomMargin = dp(12);
+        cardParams.topMargin = dp(8);
+        cardParams.bottomMargin = dp(16);
         contentContainer.addView(overallCard, cardParams);
 
         TextView subjectHeading = new TextView(requireContext());
@@ -301,14 +288,12 @@ public class AttendanceFragment extends Fragment {
         subjectHeading.setTypeface(null, Typeface.BOLD);
         subjectHeading.setTextColor(
                 requireContext().getColor(R.color.primary_text));
-
         LinearLayout.LayoutParams subjectHeadingParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
         subjectHeadingParams.topMargin = dp(24);
         subjectHeadingParams.bottomMargin = dp(8);
-
         contentContainer.addView(subjectHeading, subjectHeadingParams);
 
         for (JSONObject record : records) {
@@ -319,18 +304,14 @@ public class AttendanceFragment extends Fragment {
     private void renderSubjectCard(JSONObject record) {
         String subjectName =
                 record.optString("subjectName", "Unknown subject");
-
         String subjectCode =
                 record.optString("subjectCode", "");
-
         double attendancePercentage =
                 record.optDouble("attendancePercentage", 0.0);
-
         String riskLevel =
                 record.optString(
                         "riskLevel",
                         getRiskLevel(attendancePercentage));
-
         int presentClasses = record.optInt("presentClasses", 0);
         int absentClasses = record.optInt("absentClasses", 0);
         int totalClasses = record.optInt("totalClasses", 0);
@@ -338,18 +319,18 @@ public class AttendanceFragment extends Fragment {
 
         LinearLayout card = createCard(subjectName);
 
-        TextView code = new TextView(requireContext());
-        code.setText(subjectCode);
-        code.setTextSize(12);
-        code.setTextColor(
-                requireContext().getColor(R.color.secondary_text));
-
-        LinearLayout.LayoutParams codeParams =
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-        codeParams.topMargin = dp(2);
-        card.addView(code, codeParams);
+        if (!subjectCode.trim().isEmpty()) {
+            TextView code = new TextView(requireContext());
+            code.setText(subjectCode);
+            code.setTextSize(12);
+            code.setTextColor(COLOR_TEXT_SECONDARY);
+            LinearLayout.LayoutParams codeParams =
+                    new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT);
+            codeParams.topMargin = dp(2);
+            card.addView(code, codeParams);
+        }
 
         TextView percentage = new TextView(requireContext());
         percentage.setText(
@@ -361,7 +342,6 @@ public class AttendanceFragment extends Fragment {
         percentage.setTypeface(null, Typeface.BOLD);
         percentage.setTextColor(
                 requireContext().getColor(getStatusColor(riskLevel)));
-
         LinearLayout.LayoutParams percentageParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -375,7 +355,6 @@ public class AttendanceFragment extends Fragment {
         risk.setTypeface(null, Typeface.BOLD);
         risk.setTextColor(
                 requireContext().getColor(getStatusColor(riskLevel)));
-
         LinearLayout.LayoutParams riskParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -386,13 +365,11 @@ public class AttendanceFragment extends Fragment {
         ProgressBar progressBar = new ProgressBar(
                 requireContext(), null,
                 android.R.attr.progressBarStyleHorizontal);
-
         progressBar.setMax(100);
         progressBar.setProgress(
                 (int) Math.max(
                         0,
                         Math.min(100, Math.round(attendancePercentage))));
-
         LinearLayout.LayoutParams progressParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -404,12 +381,10 @@ public class AttendanceFragment extends Fragment {
                 card,
                 "Classes attended",
                 presentClasses + " / " + totalClasses);
-
         addDetailLine(
                 card,
                 "Classes absent",
                 String.valueOf(absentClasses));
-
         addDetailLine(
                 card,
                 "Classes needed to reach 75%",
@@ -427,7 +402,6 @@ public class AttendanceFragment extends Fragment {
             LinearLayout card,
             String label,
             String value) {
-
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -435,9 +409,7 @@ public class AttendanceFragment extends Fragment {
         TextView labelView = new TextView(requireContext());
         labelView.setText(label);
         labelView.setTextSize(13);
-        labelView.setTextColor(
-                requireContext().getColor(R.color.secondary_text));
-
+        labelView.setTextColor(COLOR_TEXT_SECONDARY);
         LinearLayout.LayoutParams labelParams =
                 new LinearLayout.LayoutParams(
                         0,
@@ -449,9 +421,7 @@ public class AttendanceFragment extends Fragment {
         valueView.setText(value);
         valueView.setTextSize(13);
         valueView.setTypeface(null, Typeface.BOLD);
-        valueView.setTextColor(
-                requireContext().getColor(R.color.primary_text));
-
+        valueView.setTextColor(COLOR_TEXT_PRIMARY);
         row.addView(valueView);
 
         LinearLayout.LayoutParams rowParams =
@@ -459,23 +429,28 @@ public class AttendanceFragment extends Fragment {
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
         rowParams.topMargin = dp(12);
-
         card.addView(row, rowParams);
     }
 
     private LinearLayout createCard(String heading) {
-        LinearLayout card = new LinearLayout(requireContext());
+        Context context = requireContext();
+        LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(16), dp(16), dp(16), dp(16));
-        card.setBackgroundResource(R.drawable.bg_card);
 
-        TextView title = new TextView(requireContext());
+        // Apple Wallet Cream surface with rounded corners and subtle elevation
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setShape(GradientDrawable.RECTANGLE);
+        cardBg.setColor(COLOR_CARD_CREAM);
+        cardBg.setCornerRadius(dp(16));
+        card.setBackground(cardBg);
+        card.setElevation(dp(2));
+
+        TextView title = new TextView(context);
         title.setText(heading);
         title.setTextSize(17);
         title.setTypeface(null, Typeface.BOLD);
-        title.setTextColor(
-                requireContext().getColor(R.color.primary_text));
-
+        title.setTextColor(COLOR_TEXT_PRIMARY);
         card.addView(title);
 
         return card;
@@ -487,15 +462,12 @@ public class AttendanceFragment extends Fragment {
         TextView body = new TextView(requireContext());
         body.setText(message);
         body.setTextSize(14);
-        body.setTextColor(
-                requireContext().getColor(R.color.secondary_text));
-
+        body.setTextColor(COLOR_TEXT_SECONDARY);
         LinearLayout.LayoutParams bodyParams =
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
         bodyParams.topMargin = dp(8);
-
         card.addView(body, bodyParams);
 
         LinearLayout.LayoutParams cardParams =
@@ -510,7 +482,6 @@ public class AttendanceFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
-
         loadingText.setVisibility(View.GONE);
         addMessageCard("Attendance", message);
     }
@@ -534,7 +505,6 @@ public class AttendanceFragment extends Fragment {
                 || "HIGH_RISK".equalsIgnoreCase(riskLevel)) {
             return "High risk";
         }
-
         return riskLevel;
     }
 
@@ -544,53 +514,41 @@ public class AttendanceFragment extends Fragment {
         } else if ("MODERATE".equalsIgnoreCase(riskLevel)) {
             return R.color.status_warning;
         }
-
         return R.color.status_high_risk;
     }
 
     private String getString(String path, String token)
             throws Exception {
-
         HttpURLConnection connection = null;
-
         try {
             URL url = new URL(BASE_URL + path);
             connection = (HttpURLConnection) url.openConnection();
-
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
             connection.setRequestProperty("Accept", "application/json");
             connection.setRequestProperty(
                     "Authorization", "Bearer " + token);
-
             int status = connection.getResponseCode();
-
             InputStream stream = status >= 200 && status < 300
                     ? connection.getInputStream()
                     : connection.getErrorStream();
-
             StringBuilder response = new StringBuilder();
-
             if (stream != null) {
                 try (BufferedReader reader = new BufferedReader(
                         new InputStreamReader(
                                 stream, StandardCharsets.UTF_8))) {
                     String line;
-
                     while ((line = reader.readLine()) != null) {
                         response.append(line);
                     }
                 }
             }
-
             if (status < 200 || status >= 300) {
                 throw new Exception(
                         "Request failed (HTTP " + status + ").");
             }
-
             return response.toString();
-
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -609,7 +567,6 @@ public class AttendanceFragment extends Fragment {
             executor.shutdownNow();
             executor = null;
         }
-
         super.onDestroyView();
     }
 }

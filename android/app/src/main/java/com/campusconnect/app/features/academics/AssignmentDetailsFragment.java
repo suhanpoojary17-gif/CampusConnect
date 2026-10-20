@@ -5,9 +5,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.LayoutInflater;
@@ -16,17 +18,13 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.os.Bundle;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
 import com.campusconnect.app.R;
-
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -38,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.Locale;
 
 public class AssignmentDetailsFragment extends Fragment {
 
@@ -47,30 +46,22 @@ public class AssignmentDetailsFragment extends Fragment {
     private static final String ARG_ASSIGNMENT_ID = "assignment_id";
 
     private ExecutorService executor;
-
     private String assignmentId;
     private String token;
-
     private JSONObject assignment;
     private JSONObject submission;
-
     private Uri selectedFileUri;
-
     private LinearLayout detailsContainer;
     private TextView statusText;
     private TextView selectedFileText;
-
-    private Button submitButton;
-    private Button attachmentButton;
-    private Button chooseFileButton;
-
+    private TextView submitButton;
+    private TextView attachmentButton;
+    private TextView chooseFileButton;
     private boolean submissionStatusKnown;
     private boolean uploadInProgress;
     private boolean attachmentDownloadInProgress;
-
     private ActivityResultLauncher<String[]> filePickerLauncher;
     private ActivityResultLauncher<String> saveAttachmentLauncher;
-
     private byte[] pendingAttachmentBytes;
     private String pendingAttachmentFileName = "assignment-attachment";
 
@@ -83,22 +74,18 @@ public class AssignmentDetailsFragment extends Fragment {
     ) {
         AssignmentDetailsFragment fragment =
                 new AssignmentDetailsFragment();
-
         Bundle arguments = new Bundle();
         arguments.putString(ARG_ASSIGNMENT_ID, assignmentId);
         fragment.setArguments(arguments);
-
         return fragment;
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         if (getArguments() != null) {
             assignmentId = getArguments().getString(ARG_ASSIGNMENT_ID);
         }
-
         filePickerLauncher =
                 registerForActivityResult(
                         new ActivityResultContracts.OpenDocument(),
@@ -106,9 +93,7 @@ public class AssignmentDetailsFragment extends Fragment {
                             if (uri == null || !isAdded()) {
                                 return;
                             }
-
                             selectedFileUri = uri;
-
                             try {
                                 requireContext()
                                         .getContentResolver()
@@ -119,17 +104,14 @@ public class AssignmentDetailsFragment extends Fragment {
                             } catch (SecurityException ignored) {
                                 // The current URI may still be readable.
                             }
-
                             if (selectedFileText != null) {
                                 selectedFileText.setText(
                                         "Selected file: " + getFileName(uri)
                                 );
                             }
-
                             updateSubmitButton();
                         }
                 );
-
         saveAttachmentLauncher =
                 registerForActivityResult(
                         new ActivityResultContracts.CreateDocument(
@@ -141,7 +123,6 @@ public class AssignmentDetailsFragment extends Fragment {
                                 showStatus("Download cancelled.");
                                 return;
                             }
-
                             saveAttachmentToUri(uri);
                         }
                 );
@@ -155,7 +136,6 @@ public class AssignmentDetailsFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         Context context = requireContext();
-
         ScrollView scrollView = new ScrollView(context);
         scrollView.setFillViewport(true);
         scrollView.setBackgroundColor(
@@ -164,19 +144,30 @@ public class AssignmentDetailsFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(20), dp(20), dp(28));
-
+        root.setPadding(dp(20), dp(24), dp(20), dp(28));
         scrollView.addView(root);
+
+        TextView eyebrow = new TextView(context);
+        eyebrow.setText("CAMPUSCONNECT");
+        eyebrow.setTextColor(context.getColor(R.color.primary_accent));
+        eyebrow.setTextSize(12);
+        eyebrow.setLetterSpacing(0.12f);
+        eyebrow.setTypeface(null, Typeface.BOLD);
+        root.addView(eyebrow);
 
         TextView heading = new TextView(context);
         heading.setText("Assignment Details");
-        heading.setTextSize(26);
+        heading.setTextSize(28);
         heading.setTypeface(null, Typeface.BOLD);
         heading.setTextColor(
                 context.getColor(R.color.primary_text)
         );
-
-        root.addView(heading);
+        LinearLayout.LayoutParams headingParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        headingParams.topMargin = dp(8);
+        root.addView(heading, headingParams);
 
         statusText = new TextView(context);
         statusText.setText("Loading assignment...");
@@ -184,19 +175,16 @@ public class AssignmentDetailsFragment extends Fragment {
         statusText.setTextColor(
                 context.getColor(R.color.secondary_text)
         );
-
         LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
         statusParams.topMargin = dp(12);
-
         root.addView(statusText, statusParams);
 
         detailsContainer = new LinearLayout(context);
         detailsContainer.setOrientation(LinearLayout.VERTICAL);
-
         root.addView(
                 detailsContainer,
                 new LinearLayout.LayoutParams(
@@ -205,47 +193,87 @@ public class AssignmentDetailsFragment extends Fragment {
                 )
         );
 
-        attachmentButton = new Button(context);
-        attachmentButton.setText("Download assignment attachment");
+        // Modernized Attachment Download Button
+        attachmentButton = createStyledSecondaryButton(context, "⬇  Download Assignment Attachment");
         attachmentButton.setVisibility(View.GONE);
-        attachmentButton.setOnClickListener(
-                v -> downloadAssignmentAttachment()
+        attachmentButton.setOnClickListener(v -> downloadAssignmentAttachment());
+        LinearLayout.LayoutParams attParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
         );
-
-        root.addView(attachmentButton);
+        attParams.topMargin = dp(16);
+        root.addView(attachmentButton, attParams);
 
         selectedFileText = new TextView(context);
         selectedFileText.setText("No file selected");
         selectedFileText.setTextSize(14);
         selectedFileText.setTextColor(
-                context.getColor(R.color.secondary_text)
+                context.getColor(R.color.primary_text)
         );
-
         LinearLayout.LayoutParams selectedFileParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-        selectedFileParams.topMargin = dp(12);
-
+        selectedFileParams.topMargin = dp(16);
         root.addView(selectedFileText, selectedFileParams);
 
-        chooseFileButton = new Button(context);
-        chooseFileButton.setText("Choose submission file");
-        chooseFileButton.setOnClickListener(
-                v -> filePickerLauncher.launch(new String[]{"*/*"})
+        // Modernized Choose File Button
+        chooseFileButton = createStyledSecondaryButton(context, "📁  Choose Submission File");
+        chooseFileButton.setOnClickListener(v -> filePickerLauncher.launch(new String[]{"*/*"}));
+        LinearLayout.LayoutParams chooseParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
         );
+        chooseParams.topMargin = dp(10);
+        root.addView(chooseFileButton, chooseParams);
 
-        root.addView(chooseFileButton);
-
-        submitButton = new Button(context);
-        submitButton.setText("Submit assignment");
+        // Modernized Primary Submit Button
+        submitButton = createStyledPrimaryButton(context, "Submit Assignment");
         submitButton.setEnabled(false);
         submitButton.setOnClickListener(v -> uploadSubmission());
-
-        root.addView(submitButton);
+        LinearLayout.LayoutParams submitParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        submitParams.topMargin = dp(12);
+        root.addView(submitButton, submitParams);
 
         return scrollView;
+    }
+
+    private TextView createStyledSecondaryButton(Context context, String text) {
+        TextView button = new TextView(context);
+        button.setText(text);
+        button.setTextSize(14);
+        button.setTypeface(null, Typeface.BOLD);
+        button.setTextColor(android.graphics.Color.parseColor("#1A1A1A"));
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(android.graphics.Color.parseColor("#E3DCD2")); // Soft card/button surface
+        bg.setCornerRadius(dp(12));
+        button.setBackground(bg);
+        button.setElevation(dp(1));
+        return button;
+    }
+
+    private TextView createStyledPrimaryButton(Context context, String text) {
+        TextView button = new TextView(context);
+        button.setText(text);
+        button.setTextSize(15);
+        button.setTypeface(null, Typeface.BOLD);
+        button.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(16), dp(16), dp(16), dp(16));
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(android.graphics.Color.parseColor("#1A1A1A")); // High-contrast solid action surface
+        bg.setCornerRadius(dp(12));
+        button.setBackground(bg);
+        button.setElevation(dp(2));
+        return button;
     }
 
     @Override
@@ -254,34 +282,27 @@ public class AssignmentDetailsFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         super.onViewCreated(view, savedInstanceState);
-
         executor = Executors.newSingleThreadExecutor();
-
         SharedPreferences preferences =
                 requireContext().getSharedPreferences(
                         PREFS_NAME,
                         Context.MODE_PRIVATE
                 );
-
         token = preferences.getString(TOKEN_KEY, null);
-
         if (TextUtils.isEmpty(token)) {
             showStatus("Your session has expired. Please sign in again.");
             return;
         }
-
         if (TextUtils.isEmpty(assignmentId)) {
             showStatus("Invalid assignment ID.");
             return;
         }
-
         try {
             UUID.fromString(assignmentId);
         } catch (IllegalArgumentException e) {
             showStatus("Invalid assignment ID.");
             return;
         }
-
         loadDetails();
     }
 
@@ -289,9 +310,7 @@ public class AssignmentDetailsFragment extends Fragment {
         if (executor == null || executor.isShutdown()) {
             return;
         }
-
         showStatus("Loading assignment details...");
-
         executor.execute(() -> {
             try {
                 String assignmentJson = request(
@@ -301,13 +320,10 @@ public class AssignmentDetailsFragment extends Fragment {
                         null,
                         null
                 );
-
                 JSONObject loadedAssignment =
                         new JSONObject(assignmentJson);
-
                 JSONObject loadedSubmission = null;
                 boolean statusKnown = false;
-
                 try {
                     String submissionJson = request(
                             "/api/assignments/" + assignmentId
@@ -317,45 +333,33 @@ public class AssignmentDetailsFragment extends Fragment {
                             null,
                             null
                     );
-
                     loadedSubmission = new JSONObject(submissionJson);
                     statusKnown = true;
-
                 } catch (Exception e) {
                     String message = e.getMessage();
-
                     if (message != null
                             && message.contains(
                                     "You have not submitted this assignment"
                             )) {
-                        // The backend explicitly confirmed no submission.
                         statusKnown = true;
                     } else {
-                        // Do not treat an arbitrary HTTP or network error
-                        // as proof that the student has not submitted.
                         statusKnown = false;
                     }
                 }
-
                 if (!isAdded()) {
                     return;
                 }
-
                 JSONObject finalSubmission = loadedSubmission;
                 boolean finalStatusKnown = statusKnown;
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded() || detailsContainer == null) {
                         return;
                     }
-
                     assignment = loadedAssignment;
                     submission = finalSubmission;
                     submissionStatusKnown = finalStatusKnown;
-
                     renderDetails();
                 });
-
             } catch (Exception e) {
                 showStatus("Unable to load assignment details.");
             }
@@ -366,24 +370,19 @@ public class AssignmentDetailsFragment extends Fragment {
         if (assignment == null || detailsContainer == null) {
             return;
         }
-
         detailsContainer.removeAllViews();
-
         addDetail(
                 "Title",
                 assignment.optString("title", "Assignment")
         );
-
         addDetail(
                 "Subject",
                 assignment.optString("subjectName", "Not available")
         );
-
         addDetail(
                 "Subject code",
                 assignment.optString("subjectCode", "Not available")
         );
-
         addDetail(
                 "Description",
                 assignment.optString(
@@ -391,151 +390,174 @@ public class AssignmentDetailsFragment extends Fragment {
                         "No description provided"
                 )
         );
-
         addDetail(
                 "Deadline",
-                assignment.optString("dueDateTime", "Not available")
-                        .replace('T', ' ')
+                formatDeadline(assignment.optString("dueDateTime", "Not available"))
         );
-
         addDetail(
                 "Maximum marks",
                 assignment.optString("maximumMarks", "Not available")
         );
-
         String attachmentPath =
                 assignment.optString("attachmentPath", "");
-
         boolean hasAttachment =
                 !TextUtils.isEmpty(attachmentPath)
                         && !"null".equalsIgnoreCase(attachmentPath);
-
         if (attachmentButton != null) {
             attachmentButton.setVisibility(
                     hasAttachment ? View.VISIBLE : View.GONE
             );
         }
-
         addDetail(
                 "Assignment attachment",
                 hasAttachment ? "Available" : "No attachment provided"
         );
-
         if (!submissionStatusKnown) {
             addDetail(
                     "Submission status",
                     "Unable to verify"
             );
-
             showStatus(
                     "Unable to verify your submission status. "
                             + "Check your connection and reopen this assignment."
             );
-
         } else if (submission != null) {
             addDetail("Submission status", "Submitted");
-
             addDetail(
                     "Submitted at",
-                    submission.optString("submittedAt", "Not available")
-                            .replace('T', ' ')
+                    formatDeadline(submission.optString("submittedAt", "Not available"))
             );
-
             addDetail(
                     "Late submission",
                     submission.optBoolean("submittedLate", false)
                             ? "Yes" : "No"
             );
-
             String comment = submission.optString("comment", "");
-
             if (!TextUtils.isEmpty(comment)
                     && !"null".equalsIgnoreCase(comment)) {
                 addDetail("Comment", comment);
             }
-
             showStatus("Your submission has been recorded.");
-
         } else {
             addDetail(
                     "Submission status",
                     "Not submitted"
             );
-
             showStatus(
                     "Select a file to submit your assignment "
                             + "before the deadline."
             );
         }
-
         updateSubmitButton();
+    }
+
+    private String formatDeadline(String rawDate) {
+        if (TextUtils.isEmpty(rawDate) || "Not available".equalsIgnoreCase(rawDate)) {
+            return "Not available";
+        }
+        try {
+            String clean = rawDate.replace('T', ' ');
+            if (clean.contains(".")) {
+                clean = clean.substring(0, clean.indexOf('.'));
+            }
+            
+            String[] parts = clean.split(" ");
+            if (parts.length < 2) {
+                return clean;
+            }
+
+            String[] dateParts = parts[0].split("-");
+            String[] timeParts = parts[1].split(":");
+
+            if (dateParts.length < 3 || timeParts.length < 2) {
+                return clean;
+            }
+
+            int year = Integer.parseInt(dateParts[0]);
+            int month = Integer.parseInt(dateParts[1]);
+            int day = Integer.parseInt(dateParts[2]);
+            int hour = Integer.parseInt(timeParts[0]);
+            int minute = Integer.parseInt(timeParts[1]);
+
+            String[] months = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+            String monthName = (month >= 1 && month <= 12) ? months[month] : "Jan";
+
+            String amPm = "AM";
+            if (hour >= 12) {
+                amPm = "PM";
+                if (hour > 12) hour -= 12;
+            }
+            if (hour == 0) hour = 12;
+
+            return String.format(Locale.getDefault(), "%s %02d, %d, %02d:%02d %s", monthName, day, year, hour, minute, amPm);
+        } catch (Exception e) {
+            return rawDate.replace('T', ' ');
+        }
     }
 
     private void updateSubmitButton() {
         if (submitButton == null) {
             return;
         }
-
         if (!submissionStatusKnown) {
             submitButton.setText("Submission status unavailable");
             submitButton.setEnabled(false);
+            submitButton.setAlpha(0.5f);
             return;
         }
-
         if (uploadInProgress) {
             submitButton.setText("Uploading...");
             submitButton.setEnabled(false);
+            submitButton.setAlpha(0.5f);
             return;
         }
-
         if (submission != null) {
-            submitButton.setText("Resubmit assignment");
+            submitButton.setText("Resubmit Assignment");
         } else {
-            submitButton.setText("Submit assignment");
+            submitButton.setText("Submit Assignment");
         }
-
-        submitButton.setEnabled(selectedFileUri != null);
+        boolean enabled = (selectedFileUri != null);
+        submitButton.setEnabled(enabled);
+        submitButton.setAlpha(enabled ? 1.0f : 0.5f);
     }
 
     private void addDetail(String label, String value) {
-        LinearLayout card = new LinearLayout(requireContext());
+        Context context = requireContext();
+        LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(14), dp(16), dp(14));
-        card.setBackgroundResource(R.drawable.bg_card);
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
+
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(android.graphics.Color.parseColor("#E6DFD3"));
+        background.setCornerRadius(dp(16));
+        card.setBackground(background);
+        card.setElevation(dp(2));
 
         LinearLayout.LayoutParams cardParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-        cardParams.topMargin = dp(10);
-
+        cardParams.topMargin = dp(12);
         detailsContainer.addView(card, cardParams);
 
-        TextView labelView = new TextView(requireContext());
+        TextView labelView = new TextView(context);
         labelView.setText(label);
-        labelView.setTextSize(12);
+        labelView.setTextSize(13);
         labelView.setTypeface(null, Typeface.BOLD);
-        labelView.setTextColor(
-                requireContext().getColor(R.color.secondary_text)
-        );
-
+        labelView.setTextColor(android.graphics.Color.parseColor("#333333"));
         card.addView(labelView);
 
-        TextView valueView = new TextView(requireContext());
+        TextView valueView = new TextView(context);
         valueView.setText(value);
         valueView.setTextSize(15);
-        valueView.setTextColor(
-                requireContext().getColor(R.color.primary_text)
-        );
-
+        valueView.setTextColor(android.graphics.Color.parseColor("#1A1A1A"));
         LinearLayout.LayoutParams valueParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-        valueParams.topMargin = dp(5);
-
+        valueParams.topMargin = dp(6);
         card.addView(valueView, valueParams);
     }
 
@@ -544,7 +566,6 @@ public class AssignmentDetailsFragment extends Fragment {
             showStatus("Please select a file first.");
             return;
         }
-
         if (!submissionStatusKnown) {
             showStatus(
                     "Unable to verify submission status. "
@@ -552,27 +573,21 @@ public class AssignmentDetailsFragment extends Fragment {
             );
             return;
         }
-
         if (executor == null || executor.isShutdown()) {
             showStatus("Please reopen this screen and try again.");
             return;
         }
-
         if (uploadInProgress) {
             return;
         }
-
         uploadInProgress = true;
-
         if (chooseFileButton != null) {
             chooseFileButton.setEnabled(false);
+            chooseFileButton.setAlpha(0.5f);
         }
-
         updateSubmitButton();
         showStatus("Uploading your assignment...");
-
         Uri fileUri = selectedFileUri;
-
         executor.execute(() -> {
             try {
                 String response = uploadFile(
@@ -580,51 +595,41 @@ public class AssignmentDetailsFragment extends Fragment {
                                 + "/submissions",
                         fileUri
                 );
-
                 JSONObject responseObject = new JSONObject(response);
-
                 if (!isAdded()) {
                     return;
                 }
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     submission = responseObject;
                     submissionStatusKnown = true;
                     selectedFileUri = null;
                     uploadInProgress = false;
-
                     if (selectedFileText != null) {
                         selectedFileText.setText("No file selected");
                     }
-
                     if (chooseFileButton != null) {
                         chooseFileButton.setEnabled(true);
+                        chooseFileButton.setAlpha(1.0f);
                     }
-
                     renderDetails();
                     showStatus("Assignment submitted successfully.");
                 });
-
             } catch (Exception e) {
                 if (!isAdded()) {
                     return;
                 }
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     uploadInProgress = false;
-
                     if (chooseFileButton != null) {
                         chooseFileButton.setEnabled(true);
+                        chooseFileButton.setAlpha(1.0f);
                     }
-
                     updateSubmitButton();
                     showUploadError(e.getMessage());
                 });
@@ -637,7 +642,6 @@ public class AssignmentDetailsFragment extends Fragment {
             showStatus("Submission failed. Please try again.");
             return;
         }
-
         if (message.contains("deadline has passed")) {
             showStatus(
                     "The submission deadline has passed. "
@@ -666,37 +670,29 @@ public class AssignmentDetailsFragment extends Fragment {
     private String uploadFile(String path, Uri uri) throws Exception {
         String boundary =
                 "CampusConnect-" + System.currentTimeMillis();
-
         HttpURLConnection connection = null;
-
         try {
             connection = (HttpURLConnection)
                     new URL(BASE_URL + path).openConnection();
-
             connection.setRequestMethod("POST");
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(30000);
             connection.setDoOutput(true);
-
             connection.setRequestProperty(
                     "Authorization",
                     "Bearer " + token
             );
-
             connection.setRequestProperty(
                     "Content-Type",
                     "multipart/form-data; boundary=" + boundary
             );
-
             String fileName = getFileName(uri);
             String mimeType = requireContext()
                     .getContentResolver()
                     .getType(uri);
-
             if (TextUtils.isEmpty(mimeType)) {
                 mimeType = "application/octet-stream";
             }
-
             try (OutputStream output = connection.getOutputStream()) {
                 String header =
                         "--" + boundary + "\r\n"
@@ -705,54 +701,41 @@ public class AssignmentDetailsFragment extends Fragment {
                                 + fileName.replace("\"", "")
                                 + "\"\r\n"
                                 + "Content-Type: " + mimeType + "\r\n\r\n";
-
                 output.write(header.getBytes(StandardCharsets.UTF_8));
-
                 try (InputStream input =
                              requireContext()
                                      .getContentResolver()
                                      .openInputStream(uri)) {
-
                     if (input == null) {
                         throw new IllegalStateException(
                                 "Unable to open selected file."
                         );
                     }
-
                     byte[] buffer = new byte[8192];
                     int bytesRead;
-
                     while ((bytesRead = input.read(buffer)) != -1) {
                         output.write(buffer, 0, bytesRead);
                     }
                 }
-
                 output.write(
                         ("\r\n--" + boundary + "--\r\n")
                                 .getBytes(StandardCharsets.UTF_8)
                 );
-
                 output.flush();
             }
-
             int status = connection.getResponseCode();
-
             InputStream stream =
                     status >= 200 && status < 300
                             ? connection.getInputStream()
                             : connection.getErrorStream();
-
             String response = readStream(stream);
-
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException(
                         "Upload failed with HTTP " + status
                                 + ": " + response
                 );
             }
-
             return response;
-
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -765,24 +748,19 @@ public class AssignmentDetailsFragment extends Fragment {
             showStatus("Please wait until assignment details finish loading.");
             return;
         }
-
         if (attachmentDownloadInProgress) {
             return;
         }
-
         if (executor == null || executor.isShutdown()) {
             showStatus("Please reopen this screen and try again.");
             return;
         }
-
         attachmentDownloadInProgress = true;
-
         if (attachmentButton != null) {
             attachmentButton.setEnabled(false);
+            attachmentButton.setAlpha(0.5f);
         }
-
         showStatus("Downloading assignment attachment...");
-
         executor.execute(() -> {
             try {
                 DownloadedAttachment downloaded =
@@ -790,46 +768,37 @@ public class AssignmentDetailsFragment extends Fragment {
                                 "/api/assignments/" + assignmentId
                                         + "/attachment"
                         );
-
                 if (!isAdded()) {
                     return;
                 }
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     pendingAttachmentBytes = downloaded.bytes;
                     pendingAttachmentFileName = downloaded.fileName;
-
                     attachmentDownloadInProgress = false;
-
                     if (attachmentButton != null) {
                         attachmentButton.setEnabled(true);
+                        attachmentButton.setAlpha(1.0f);
                     }
-
                     saveAttachmentLauncher.launch(
                             pendingAttachmentFileName
                     );
                 });
-
             } catch (Exception e) {
                 if (!isAdded()) {
                     return;
                 }
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     attachmentDownloadInProgress = false;
-
                     if (attachmentButton != null) {
                         attachmentButton.setEnabled(true);
+                        attachmentButton.setAlpha(1.0f);
                     }
-
                     showStatus(
                             "Unable to download the attachment. "
                                     + "Please try again."
@@ -842,7 +811,6 @@ public class AssignmentDetailsFragment extends Fragment {
     private static class DownloadedAttachment {
         final byte[] bytes;
         final String fileName;
-
         DownloadedAttachment(byte[] bytes, String fileName) {
             this.bytes = bytes;
             this.fileName = fileName;
@@ -851,54 +819,41 @@ public class AssignmentDetailsFragment extends Fragment {
 
     private DownloadedAttachment downloadAttachment(String path)
             throws Exception {
-
         HttpURLConnection connection = null;
-
         try {
             connection = (HttpURLConnection)
                     new URL(BASE_URL + path).openConnection();
-
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(30000);
-
             connection.setRequestProperty(
                     "Authorization",
                     "Bearer " + token
             );
-
             int status = connection.getResponseCode();
-
             if (status < 200 || status >= 300) {
                 String error = readStream(connection.getErrorStream());
-
                 throw new IllegalStateException(
                         "Download failed with HTTP " + status
                                 + ": " + error
                 );
             }
-
             String fileName = extractFileName(
                     connection.getHeaderField("Content-Disposition")
             );
-
             try (InputStream input = connection.getInputStream();
                  ByteArrayOutputStream output =
                          new ByteArrayOutputStream()) {
-
                 byte[] buffer = new byte[8192];
                 int count;
-
                 while ((count = input.read(buffer)) != -1) {
                     output.write(buffer, 0, count);
                 }
-
                 return new DownloadedAttachment(
                         output.toByteArray(),
                         fileName
                 );
             }
-
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -910,36 +865,27 @@ public class AssignmentDetailsFragment extends Fragment {
         if (!TextUtils.isEmpty(disposition)) {
             String marker = "filename=";
             int index = disposition.indexOf(marker);
-
             if (index >= 0) {
                 String fileName =
                         disposition.substring(index + marker.length())
                                 .trim();
-
                 if (fileName.startsWith("\"")) {
                     fileName = fileName.substring(1);
-
                     int end = fileName.indexOf('"');
-
                     if (end >= 0) {
                         fileName = fileName.substring(0, end);
                     }
                 } else {
                     int separator = fileName.indexOf(';');
-
                     if (separator >= 0) {
                         fileName = fileName.substring(0, separator);
                     }
                 }
-
                 fileName = fileName.trim().replace('\\', '/');
-
                 int slash = fileName.lastIndexOf('/');
-
                 if (slash >= 0) {
                     fileName = fileName.substring(slash + 1);
                 }
-
                 if (!fileName.isEmpty()
                         && !".".equals(fileName)
                         && !"..".equals(fileName)) {
@@ -947,36 +893,28 @@ public class AssignmentDetailsFragment extends Fragment {
                 }
             }
         }
-
         return "assignment-attachment";
     }
 
     private void saveAttachmentToUri(Uri uri) {
         byte[] bytes = pendingAttachmentBytes;
-
         if (bytes == null) {
             showStatus("There is no downloaded file to save.");
             return;
         }
-
         try (OutputStream output =
                      requireContext()
                              .getContentResolver()
                              .openOutputStream(uri)) {
-
             if (output == null) {
                 throw new IllegalStateException(
                         "Unable to open the selected save location."
                 );
             }
-
             output.write(bytes);
             output.flush();
-
             pendingAttachmentBytes = null;
-
             showStatus("Assignment attachment saved successfully.");
-
         } catch (Exception e) {
             showStatus(
                     "Unable to save the attachment. Please try again."
@@ -991,60 +929,45 @@ public class AssignmentDetailsFragment extends Fragment {
             String contentType,
             String accept
     ) throws Exception {
-
         HttpURLConnection connection = null;
-
         try {
             connection = (HttpURLConnection)
                     new URL(BASE_URL + path).openConnection();
-
             connection.setRequestMethod(method);
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(15000);
-
             connection.setRequestProperty(
                     "Authorization",
                     "Bearer " + token
             );
-
             connection.setRequestProperty(
                     "Accept",
                     accept == null ? "application/json" : accept
             );
-
             if (body != null) {
                 connection.setDoOutput(true);
-
                 if (contentType != null) {
                     connection.setRequestProperty(
                             "Content-Type",
                             contentType
                     );
                 }
-
                 try (OutputStream output = connection.getOutputStream()) {
                     output.write(body);
                 }
             }
-
             int status = connection.getResponseCode();
-
             InputStream stream =
                     status >= 200 && status < 300
                             ? connection.getInputStream()
                             : connection.getErrorStream();
-
             String response = readStream(stream);
-
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException(
-                        "Request failed with HTTP " + status
-                                + ": " + response
+                        "Request failed with HTTP " + status + ": " + response
                 );
             }
-
             return response;
-
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -1056,67 +979,51 @@ public class AssignmentDetailsFragment extends Fragment {
         if (stream == null) {
             return "";
         }
-
-        StringBuilder result = new StringBuilder();
-
-        try (BufferedReader reader =
-                     new BufferedReader(
-                             new InputStreamReader(
-                                     stream,
-                                     StandardCharsets.UTF_8
-                             )
-                     )) {
-
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            StringBuilder result = new StringBuilder();
             String line;
-
             while ((line = reader.readLine()) != null) {
                 result.append(line);
             }
+            return result.toString();
         }
-
-        return result.toString();
     }
 
     private String getFileName(Uri uri) {
-        String result = "submission_file";
-
-        try (Cursor cursor =
-                     requireContext()
-                             .getContentResolver()
-                             .query(uri, null, null, null, null)) {
-
-            if (cursor != null && cursor.moveToFirst()) {
-                int index = cursor.getColumnIndex(
-                        OpenableColumns.DISPLAY_NAME
-                );
-
-                if (index >= 0) {
-                    String name = cursor.getString(index);
-
-                    if (!TextUtils.isEmpty(name)) {
-                        result = name;
+        String result = null;
+        if (uri.getScheme() != null && uri.getScheme().equals("content")) {
+            try (Cursor cursor = requireContext().getContentResolver()
+                    .query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex != -1) {
+                        result = cursor.getString(nameIndex);
                     }
                 }
+            } catch (Exception ignored) {
             }
-
-        } catch (Exception ignored) {
-            // Retain the fallback name.
         }
-
-        return result;
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result != null ? result.lastIndexOf('/') : -1;
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return result != null ? result : "uploaded-file";
     }
 
     private void showStatus(String message) {
         if (!isAdded()) {
             return;
         }
-
         requireActivity().runOnUiThread(() -> {
-            if (!isAdded() || statusText == null) {
+            if (!isAdded()) {
                 return;
             }
-
             statusText.setText(message);
+            statusText.setVisibility(View.VISIBLE);
         });
     }
 
@@ -1130,20 +1037,12 @@ public class AssignmentDetailsFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        super.onDestroyView();
         if (executor != null) {
             executor.shutdownNow();
             executor = null;
         }
-
-        pendingAttachmentBytes = null;
-
         detailsContainer = null;
         statusText = null;
-        selectedFileText = null;
-        submitButton = null;
-        attachmentButton = null;
-        chooseFileButton = null;
-
-        super.onDestroyView();
     }
 }

@@ -16,6 +16,13 @@ import androidx.fragment.app.Fragment;
 
 import com.campusconnect.app.R;
 
+import com.campusconnect.app.features.academics.AttendanceFragment;
+import com.campusconnect.app.features.academics.TimetableFragment;
+import com.campusconnect.app.features.academics.AssignmentsFragment;
+import com.campusconnect.app.features.academics.AcademicPerformanceFragment;
+import com.campusconnect.app.features.materials.SubjectMaterialsListFragment;
+
+
 public class AcademicsFragment extends Fragment {
 
     public AcademicsFragment() {
@@ -39,17 +46,17 @@ public class AcademicsFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(24), dp(20), dp(28));
+        root.setPadding(dp(20), dp(24), dp(20), dp(36));
 
         scrollView.addView(root);
 
         TextView eyebrow = new TextView(context);
         eyebrow.setText("CAMPUSCONNECT");
         eyebrow.setTextColor(
-                context.getColor(R.color.primary_accent)
+                context.getColor(R.color.secondary_text)
         );
         eyebrow.setTextSize(12);
-        eyebrow.setLetterSpacing(0.12f);
+        eyebrow.setLetterSpacing(0.15f);
         eyebrow.setTypeface(null, Typeface.BOLD);
 
         root.addView(eyebrow);
@@ -95,7 +102,7 @@ public class AcademicsFragment extends Fragment {
                 context.getColor(R.color.secondary_text)
         );
         sectionHeading.setTextSize(11);
-        sectionHeading.setLetterSpacing(0.08f);
+        sectionHeading.setLetterSpacing(0.1f);
         sectionHeading.setTypeface(null, Typeface.BOLD);
 
         LinearLayout.LayoutParams sectionParams =
@@ -183,163 +190,145 @@ public class AcademicsFragment extends Fragment {
     }
 
     private void addNavigationCard(
-                LinearLayout parent,
-                String heading,
-                String description,
-                String number,
-                Runnable action
-        ) {
-                Context context = requireContext();
+            LinearLayout parent,
+            String heading,
+            String description,
+            String number,
+            Runnable action
+    ) {
+        Context context = requireContext();
 
-                LinearLayout card = new LinearLayout(context);
-                card.setOrientation(LinearLayout.HORIZONTAL);
-                card.setGravity(Gravity.CENTER_VERTICAL);
-                card.setPadding(dp(16), dp(18), dp(16), dp(18));
-                card.setBackgroundResource(R.drawable.bg_card);
-                card.setClickable(true);
-                card.setFocusable(true);
+        // Check if dark mode is active to adapt card text contrast cleanly
+        boolean isDarkMode = (context.getResources().getConfiguration().uiMode 
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) 
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
 
-                LinearLayout.LayoutParams cardParams =
-                        new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                        );
 
-                cardParams.topMargin = dp(12);
-                parent.addView(card, cardParams);
+        // Use dark text on light beige cards in dark mode for optimal readability
+        int cardTextColor = isDarkMode ? android.graphics.Color.parseColor("#1A1A1A") : context.getColor(R.color.primary_text);
+        int cardSubColor = isDarkMode ? android.graphics.Color.parseColor("#555555") : context.getColor(R.color.secondary_text);
 
-                TextView numberView = new TextView(context);
-                numberView.setText(number);
-                numberView.setTextColor(
-                        context.getColor(R.color.primary_accent)
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(16), dp(18), dp(16), dp(18));
+        card.setBackgroundResource(R.drawable.bg_card);
+        
+        if (isDarkMode) {
+        card.getBackground().setTint(android.graphics.Color.parseColor("#E6DFD3"));
+        }else {
+        card.getBackground().setTintList(null);
+        }
+        card.setClickable(true);
+        card.setFocusable(true);
+
+        LinearLayout.LayoutParams cardParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-                numberView.setTextSize(15);
-                numberView.setTypeface(null, Typeface.BOLD);
-                numberView.setGravity(Gravity.CENTER);
 
-                LinearLayout.LayoutParams numberParams =
-                        new LinearLayout.LayoutParams(
-                                dp(42),
-                                dp(42)
-                        );
+        cardParams.topMargin = dp(12);
+        parent.addView(card, cardParams);
 
-                card.addView(numberView, numberParams);
+        TextView numberView = new TextView(context);
+        numberView.setText(number);
+        numberView.setTextColor(cardTextColor);
+        numberView.setTextSize(15);
+        numberView.setTypeface(null, Typeface.BOLD);
+        numberView.setGravity(Gravity.CENTER);
 
-                LinearLayout textContainer = new LinearLayout(context);
-                textContainer.setOrientation(LinearLayout.VERTICAL);
-
-                LinearLayout.LayoutParams textParams =
-                        new LinearLayout.LayoutParams(
-                                0,
-                                ViewGroup.LayoutParams.WRAP_CONTENT,
-                                1f
-                        );
-
-                textParams.leftMargin = dp(14);
-                card.addView(textContainer, textParams);
-
-                TextView title = new TextView(context);
-                title.setText(heading);
-                title.setTextColor(
-                        context.getColor(R.color.primary_text)
+        LinearLayout.LayoutParams numberParams =
+                new LinearLayout.LayoutParams(
+                        dp(42),
+                        dp(42)
                 );
-                title.setTextSize(16);
-                title.setTypeface(null, Typeface.BOLD);
 
-                textContainer.addView(title);
+        card.addView(numberView, numberParams);
 
-                TextView subtitle = new TextView(context);
-                subtitle.setText(description);
-                subtitle.setTextColor(
-                        context.getColor(R.color.secondary_text)
+        LinearLayout textContainer = new LinearLayout(context);
+        textContainer.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout.LayoutParams textParams =
+                new LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        1f
                 );
-                subtitle.setTextSize(13);
-                subtitle.setLineSpacing(dp(2), 1f);
 
-                LinearLayout.LayoutParams subtitleParams =
-                        new LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                        );
+        textParams.leftMargin = dp(14);
+        card.addView(textContainer, textParams);
 
-                subtitleParams.topMargin = dp(5);
-                textContainer.addView(subtitle, subtitleParams);
+        TextView title = new TextView(context);
+        title.setText(heading);
+        title.setTextColor(cardTextColor);
+        title.setTextSize(16);
+        title.setTypeface(null, Typeface.BOLD);
 
-                TextView arrow = new TextView(context);
-                arrow.setText("›");
-                arrow.setTextColor(
-                        context.getColor(R.color.primary_accent)
+        textContainer.addView(title);
+
+        TextView subtitle = new TextView(context);
+        subtitle.setText(description);
+        subtitle.setTextColor(cardSubColor);
+        subtitle.setTextSize(13);
+        subtitle.setLineSpacing(dp(2), 1f);
+
+        LinearLayout.LayoutParams subtitleParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-                arrow.setTextSize(28);
-                arrow.setGravity(Gravity.CENTER);
 
-                LinearLayout.LayoutParams arrowParams =
-                        new LinearLayout.LayoutParams(
-                                dp(24),
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                        );
+        subtitleParams.topMargin = dp(4);
+        textContainer.addView(subtitle, subtitleParams);
 
-                card.addView(arrow, arrowParams);
+        TextView arrow = new TextView(context);
+        arrow.setText("›");
+        arrow.setTextColor(cardTextColor);
+        arrow.setTextSize(26);
+        arrow.setGravity(Gravity.CENTER);
 
-                card.setOnClickListener(v -> action.run());
-        }
+        LinearLayout.LayoutParams arrowParams =
+                new LinearLayout.LayoutParams(
+                        dp(24),
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
 
-        private void openAttendanceScreen() {
-                openFragment(new AttendanceFragment());
-        }
+        card.addView(arrow, arrowParams);
 
-        private void openTimetableScreen() {
-                openFragment(new TimetableFragment());
-        }
+        card.setOnClickListener(v -> action.run());
+    }
 
-        private void openAssignmentsScreen() {
-                openFragment(new AssignmentsFragment());
-        }
+    private void openAttendanceScreen() {
+        openFragment(new AttendanceFragment());
+    }
 
-        private void openCourseMaterialsScreen() {
-                openFragment(new CourseMaterialsFragment());
-        }
+    private void openTimetableScreen() {
+        openFragment(new TimetableFragment());
+    }
 
-        private void openFragment(Fragment fragment) {
-                if (!isAdded()) {
-                return;
-                }
+    private void openAssignmentsScreen() {
+        openFragment(new AssignmentsFragment());
+    }
 
-                getParentFragmentManager()
-                        .beginTransaction()
-                        .replace(
-                                R.id.fragmentContainer,
-                                fragment
-                        )
-                        .addToBackStack(null)
-                        .commit();
+    private void openCourseMaterialsScreen() {
+        openFragment(new SubjectMaterialsListFragment());
+    }
 
-                }
-
-
-        private void showComingSoon(
-        String heading,
-        String message
-        ) {
+    private void openFragment(Fragment fragment) {
         if (!isAdded()) {
-        return;
+            return;
         }
 
         getParentFragmentManager()
                 .beginTransaction()
                 .replace(
                         R.id.fragmentContainer,
-                        PlaceholderFragment.newInstance(
-                                heading,
-                                message
-                        )
+                        fragment
                 )
                 .addToBackStack(null)
                 .commit();
-
-
-        }
-
+    }
 
     private int dp(int value) {
         return Math.round(
@@ -348,5 +337,4 @@ public class AcademicsFragment extends Fragment {
                         .density
         );
     }
-
 }

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Selected navigation item -->
+    <!-- Selected navigation item (Solid Dark in Light mode, Solid White in Dark mode via theme) -->
     <item
         android:state_checked="true"
-        android:color="@color/primary_accent" />
+        android:color="@color/primary_text" />
 
     <!-- Unselected navigation items -->
     <item

@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.CampusConnect"
-        parent="Theme.MaterialComponents.DayNight.NoActionBar">
-
+    <style name="Theme.CampusConnect" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary_accent</item>
         <item name="colorPrimaryVariant">@color/accent_hover</item>
         <item name="colorSecondary">@color/primary_accent</item>
-
         <item name="android:colorAccent">@color/primary_accent</item>
+        
+        <item name="android:windowBackground">@color/main_background</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">@color/main_background</item>
+        <item name="android:navigationBarColor">@color/main_background</item>
+        <item name="android:windowLightStatusBar">true</item> <!-- Dark icons for white background -->
+        <item name="colorOnSurface">#1C1B1A</item>
 
-        <item name="android:windowBackground">
-            @color/main_background
-        </item>
-
-        <item name="android:statusBarColor">
-            @color/main_background
-        </item>
-
-        <item name="android:navigationBarColor">
-            @color/main_background
-        </item>
-
-        <item name="android:windowLightStatusBar">true</item>
-
+        <!-- Backgrounds -->
+        <item name="android:windowBackground">@color/main_background</item>
+        
+        <!-- Canvas Text (Headings on background) -->
+        <item name="android:textColorPrimary">#1C1B1A</item> 
+        
+        <!-- Card Text (Text inside light/pastel cards) -->
+        <item name="colorOnSurface">#1C1B1A</item>
     </style>
-
 </resources>

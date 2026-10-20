@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,6 +35,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.campusconnect.app.features.academics.AttendanceFragment;
+import com.campusconnect.app.features.academics.TimetableFragment;
+import com.campusconnect.app.features.academics.AssignmentsFragment;
+import com.campusconnect.app.features.academics.AcademicPerformanceFragment;
 
 public class HomeDashboardFragment extends Fragment {
 
@@ -89,7 +95,7 @@ public class HomeDashboardFragment extends Fragment {
         );
     }
 
-    @Override
+@Override
     public void onViewCreated(
             @NonNull View view,
             @Nullable Bundle savedInstanceState
@@ -138,12 +144,6 @@ public class HomeDashboardFragment extends Fragment {
         View notificationsCard = view.findViewById(R.id.notificationsCard);
         View chatbotCard = view.findViewById(R.id.chatbotCard);
 
-        View.OnClickListener academicsClickListener = clickedView -> {
-            if (navigationListener != null) {
-                navigationListener.onHomeCardSelected(R.id.nav_academics);
-            }
-        };
-
         // Updated Direct Notifications/Notices Navigation Handler
         View.OnClickListener directNotificationsClickListener = clickedView -> {
             if (isAdded()) {
@@ -155,12 +155,48 @@ public class HomeDashboardFragment extends Fragment {
             }
         };
 
-        attendanceCard.setOnClickListener(academicsClickListener);
-        timetableCard.setOnClickListener(academicsClickListener);
-        assignmentsCard.setOnClickListener(academicsClickListener);
-        performanceCard.setOnClickListener(academicsClickListener);
+        // Dedicated individual card navigation handlers
+        attendanceCard.setOnClickListener(v -> {
+            if (isAdded()) {
+                getParentFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragmentContainer, new com.campusconnect.app.features.academics.AttendanceFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+
+        timetableCard.setOnClickListener(v -> {
+            if (isAdded()) {
+                getParentFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragmentContainer, new com.campusconnect.app.features.academics.TimetableFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+
+        assignmentsCard.setOnClickListener(v -> {
+            if (isAdded()) {
+                getParentFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragmentContainer, new com.campusconnect.app.features.academics.AssignmentsFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+
+        performanceCard.setOnClickListener(v -> {
+            if (isAdded()) {
+                getParentFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragmentContainer, new com.campusconnect.app.features.academics.AcademicPerformanceFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
         
-        // Cards now correctly route directly to NotificationsFragment
+        // Cards route directly to NotificationsFragment
         noticesCard.setOnClickListener(directNotificationsClickListener);
         notificationsCard.setOnClickListener(directNotificationsClickListener);
         
@@ -169,6 +205,11 @@ public class HomeDashboardFragment extends Fragment {
         executor = Executors.newFixedThreadPool(4);
 
         loadDashboard();
+
+        // Apply monochrome styling if selected
+        if (com.campusconnect.app.core.theme.ThemeManager.isMonochrome(requireContext())) {
+            applyMonochromeToView(view, true);
+        }
     }
 
     private void openProfileScreen() {
@@ -323,10 +364,10 @@ public class HomeDashboardFragment extends Fragment {
                         "No attendance records yet"
                 );
 
-                updateText(
-                        attendanceDetails,
-                        "Your attendance summary will appear when classes are recorded."
-                );
+                // Safely update visibility on the UI thread
+                if (attendanceDetails != null) {
+                    requireActivity().runOnUiThread(() -> attendanceDetails.setVisibility(android.view.View.GONE));
+                }
 
                 return;
             }
@@ -357,14 +398,13 @@ public class HomeDashboardFragment extends Fragment {
                     status
             );
 
-            updateText(
-                    attendanceDetails,
-                    "Present: " + presentClasses
-                            + "  •  Absent: " + absentClasses
-                            + "  •  Total: " + totalClasses
-            );
+            // Safely update visibility on the UI thread
+            if (attendanceDetails != null) {
+                requireActivity().runOnUiThread(() -> attendanceDetails.setVisibility(android.view.View.GONE));
+            }
 
         } catch (Exception e) {
+            android.util.Log.e("HomeDashboard", "Failed to load attendance", e);
             updateText(
                     attendancePercentage,
                     "--"
@@ -372,13 +412,12 @@ public class HomeDashboardFragment extends Fragment {
 
             updateText(
                     attendanceStatus,
-                    "Attendance unavailable"
+                    "Unavailable"
             );
 
-            updateText(
-                    attendanceDetails,
-                    "Could not load attendance information."
-            );
+            if (attendanceDetails != null) {
+                requireActivity().runOnUiThread(() -> attendanceDetails.setVisibility(android.view.View.GONE));
+            }
         }
     }
 
@@ -397,7 +436,6 @@ public class HomeDashboardFragment extends Fragment {
                         timetableContent,
                         "No classes scheduled for today."
                 );
-
                 return;
             }
 
@@ -421,47 +459,37 @@ public class HomeDashboardFragment extends Fragment {
                     )
             );
 
-            StringBuilder result = new StringBuilder();
+            // Grab the next upcoming class (first item in sorted list)
+            JSONObject nextClass = entries.get(0);
+            
+            String start = nextClass.optString("startTime", "");
+            String end = nextClass.optString("endTime", "");
+            
+            // Adjust "subject" or "className" based on your JSON response key
+            String className = nextClass.optString("subjectName", 
+                               nextClass.optString("className", "Scheduled Class"));
+            String room = nextClass.optString("room", "");
 
-            for (JSONObject item : entries) {
-                String start = item.optString(
-                        "startTime",
-                        ""
-                );
+            StringBuilder summary = new StringBuilder();
+            summary.append(className).append("\n");
+            
+            if (!TextUtils.isEmpty(start) && !TextUtils.isEmpty(end)) {
+                summary.append(start).append(" - ").append(end);
+            } else {
+                summary.append("Today");
+            }
 
-                String end = item.optString(
-                        "endTime",
-                        ""
-                );
-
-                String room = item.optString(
-                        "room",
-                        ""
-                );
-
-                result.append(start)
-                        .append(" - ")
-                        .append(end)
-                        .append("\n");
-
-                result.append("Scheduled class");
-
-                if (!TextUtils.isEmpty(room)
-                        && !"null".equalsIgnoreCase(room)) {
-
-                    result.append(" • Room ")
-                            .append(room);
-                }
-
-                result.append("\n\n");
+            if (!TextUtils.isEmpty(room) && !"null".equalsIgnoreCase(room)) {
+                summary.append(" • Room ").append(room);
             }
 
             updateText(
                     timetableContent,
-                    result.toString().trim()
+                    summary.toString()
             );
 
         } catch (Exception e) {
+            Log.e("HomeDashboard", "Failed to load timetable", e);
             updateText(
                     timetableContent,
                     "Today's timetable is currently unavailable."
@@ -518,48 +546,49 @@ public class HomeDashboardFragment extends Fragment {
                 return;
             }
 
-            StringBuilder result = new StringBuilder();
+            // Grab only the single nearest upcoming assignment for a minimalist card look
+            JSONObject nextAssignment = upcoming.get(0);
 
-            int limit = Math.min(upcoming.size(), 3);
+            String title = nextAssignment.optString(
+                    "title",
+                    "Assignment"
+            );
 
-            for (int i = 0; i < limit; i++) {
-                JSONObject item = upcoming.get(i);
+            String subject = nextAssignment.optString(
+                    "subjectName",
+                    ""
+            );
 
-                String title = item.optString(
-                        "title",
-                        "Assignment"
-                );
+            String due = nextAssignment.optString(
+                    "dueDateTime",
+                    ""
+            );
 
-                String subject = item.optString(
-                        "subjectName",
-                        ""
-                );
+            StringBuilder summary = new StringBuilder();
+            summary.append(title);
 
-                String due = item.optString(
-                        "dueDateTime",
-                        "Deadline unavailable"
-                );
+            if (!TextUtils.isEmpty(subject)
+                    && !"null".equalsIgnoreCase(subject)) {
 
-                result.append(title);
+                summary.append("\n").append(subject);
+            }
 
-                if (!TextUtils.isEmpty(subject)
-                        && !"null".equalsIgnoreCase(subject)) {
-
-                    result.append("\n")
-                            .append(subject);
+            if (!TextUtils.isEmpty(due)) {
+                // Clean up the timestamp to show just date/time nicely
+                String cleanDue = due.replace('T', ' ');
+                if (cleanDue.length() > 16) {
+                    cleanDue = cleanDue.substring(0, 16); // Trim seconds if present
                 }
-
-                result.append("\nDue: ")
-                        .append(due.replace('T', ' '))
-                        .append("\n\n");
+                summary.append("\nDue: ").append(cleanDue);
             }
 
             updateText(
                     assignmentsContent,
-                    result.toString().trim()
+                    summary.toString()
             );
 
         } catch (Exception e) {
+            Log.e("HomeDashboard", "Failed to load assignments", e);
             updateText(
                     assignmentsContent,
                     "Assignments are currently unavailable."
@@ -602,33 +631,26 @@ public class HomeDashboardFragment extends Fragment {
                                     )
             );
 
-            StringBuilder result = new StringBuilder();
+            // Grab only the single latest notice for a clean, minimalist feed card
+            JSONObject latestNotice = notices.get(0);
 
-            int limit = Math.min(notices.size(), 3);
+            String title = latestNotice.optString("title", "Campus notice");
+            String date = latestNotice.optString("date", "");
 
-            for (int i = 0; i < limit; i++) {
-                JSONObject item = notices.get(i);
+            StringBuilder summary = new StringBuilder();
+            summary.append(title);
 
-                result.append(
-                        item.optString("title", "Campus notice")
-                );
-
-                String date = item.optString("date", "");
-
-                if (!TextUtils.isEmpty(date)) {
-                    result.append("\n")
-                            .append(date);
-                }
-
-                result.append("\n\n");
+            if (!TextUtils.isEmpty(date)) {
+                summary.append("\n").append(date);
             }
 
             updateText(
                     noticesContent,
-                    result.toString().trim()
+                    summary.toString()
             );
 
         } catch (Exception e) {
+                Log.e("HomeDashboard", "Failed to load notices", e);
             updateText(
                     noticesContent,
                     "Notices are currently unavailable."
@@ -655,7 +677,7 @@ public class HomeDashboardFragment extends Fragment {
 
             String level = response.optString(
                     "performanceLevel",
-                    ""
+                    "Good"
             );
 
             JSONArray subjects = response.optJSONArray(
@@ -678,50 +700,23 @@ public class HomeDashboardFragment extends Fragment {
                     obtained * 100.0 / maximum
             );
 
+            // Clean & Minimalist: Display only high-level summary metrics
             String overallSummary = String.format(
                     Locale.getDefault(),
-                    "Overall percentage: %.1f%%\nMarks obtained: %.0f / %.0f\nPerformance level: %s",
+                    "%.1f%% • %s\nMarks: %.0f / %.0f",
                     percentage,
+                    level,
                     obtained,
-                    maximum,
-                    level
+                    maximum
             );
-
-            StringBuilder result = new StringBuilder(overallSummary);
-
-            if (subjects != null && subjects.length() > 0) {
-                result.append("\n\nSubject performance:");
-                for (int i = 0; i < subjects.length(); i++) {
-                    JSONObject sub = subjects.optJSONObject(i);
-                    if (sub != null) {
-                        String subName = sub.optString("subjectName", "Subject");
-                        String subCode = sub.optString("subjectCode", "");
-                        double subObt = sub.optDouble("totalMarksObtained", 0);
-                        double subMax = sub.optDouble("totalMaximumMarks", 0);
-                        double subPct = sub.optDouble("percentage", 0);
-                        String subLevel = sub.optString("performanceLevel", "");
-
-                        String subjectLine = String.format(
-                                Locale.getDefault(),
-                                "\n%s (%s)\nMarks: %.0f / %.0f (%.1f%%) • %s",
-                                subName,
-                                subCode,
-                                subObt,
-                                subMax,
-                                subPct,
-                                subLevel
-                        );
-                        result.append(subjectLine);
-                    }
-                }
-            }
 
             updateText(
                     performanceContent,
-                    result.toString().trim()
+                    overallSummary
             );
 
         } catch (Exception e) {
+            Log.e("HomeDashboard", "Failed to load performance", e);
             updateText(
                     performanceContent,
                     "Academic performance is currently unavailable."
@@ -756,6 +751,7 @@ public class HomeDashboardFragment extends Fragment {
             );
 
         } catch (Exception e) {
+            Log.e("HomeDashboard", "Failed to load notification count", e);
             updateText(
                     notificationsContent,
                     "Notification count is currently unavailable."
@@ -880,5 +876,22 @@ public class HomeDashboardFragment extends Fragment {
         navigationListener = null;
 
         super.onDestroyView();
+    }
+
+    private void applyMonochromeToView(android.view.View view, boolean isMonochrome) {
+        if (!isMonochrome) return;
+
+        if (view instanceof com.google.android.material.card.MaterialCardView) {
+            com.google.android.material.card.MaterialCardView card = 
+                (com.google.android.material.card.MaterialCardView) view;
+            card.setCardBackgroundColor(android.graphics.Color.parseColor("#FFFFFF"));
+            card.setStrokeColor(android.graphics.Color.parseColor("#000000"));
+            card.setStrokeWidth(2);
+        } else if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                applyMonochromeToView(group.getChildAt(i), true);
+            }
+        }
     }
 }

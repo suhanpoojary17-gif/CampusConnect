@@ -3,6 +3,7 @@ package com.campusconnect.app.features.academics;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -11,16 +12,12 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
 import com.campusconnect.app.R;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,7 +37,6 @@ public class AssignmentsFragment extends Fragment {
     private static final String TOKEN_KEY = "jwt_token";
 
     private ExecutorService executor;
-
     private LinearLayout assignmentsContainer;
     private TextView statusText;
 
@@ -57,7 +52,6 @@ public class AssignmentsFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         Context context = requireContext();
-
         ScrollView scrollView = new ScrollView(context);
         scrollView.setFillViewport(true);
         scrollView.setBackgroundColor(
@@ -66,8 +60,7 @@ public class AssignmentsFragment extends Fragment {
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(20), dp(20), dp(20), dp(28));
-
+        root.setPadding(dp(20), dp(24), dp(20), dp(28));
         scrollView.addView(root);
 
         TextView eyebrow = new TextView(context);
@@ -78,7 +71,6 @@ public class AssignmentsFragment extends Fragment {
         eyebrow.setTextSize(12);
         eyebrow.setLetterSpacing(0.12f);
         eyebrow.setTypeface(null, Typeface.BOLD);
-
         root.addView(eyebrow);
 
         TextView title = new TextView(context);
@@ -88,32 +80,27 @@ public class AssignmentsFragment extends Fragment {
         );
         title.setTextSize(28);
         title.setTypeface(null, Typeface.BOLD);
-
         LinearLayout.LayoutParams titleParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
         titleParams.topMargin = dp(8);
-
         root.addView(title, titleParams);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText(
-                "View your coursework and submission deadlines."
-        );
+        subtitle.setText("Your coursework and submission deadlines.");
         subtitle.setTextColor(
                 context.getColor(R.color.secondary_text)
         );
         subtitle.setTextSize(14);
-
         LinearLayout.LayoutParams subtitleParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
         subtitleParams.topMargin = dp(4);
-
+        subtitleParams.bottomMargin = dp(16);
         root.addView(subtitle, subtitleParams);
 
         statusText = new TextView(context);
@@ -123,19 +110,16 @@ public class AssignmentsFragment extends Fragment {
         );
         statusText.setTextSize(14);
         statusText.setGravity(Gravity.CENTER);
-
         LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         dp(80)
                 );
         statusParams.topMargin = dp(12);
-
         root.addView(statusText, statusParams);
 
         assignmentsContainer = new LinearLayout(context);
         assignmentsContainer.setOrientation(LinearLayout.VERTICAL);
-
         root.addView(
                 assignmentsContainer,
                 new LinearLayout.LayoutParams(
@@ -153,7 +137,6 @@ public class AssignmentsFragment extends Fragment {
             @Nullable Bundle savedInstanceState
     ) {
         super.onViewCreated(view, savedInstanceState);
-
         executor = Executors.newSingleThreadExecutor();
         loadAssignments();
     }
@@ -164,31 +147,24 @@ public class AssignmentsFragment extends Fragment {
                         PREFS_NAME,
                         Context.MODE_PRIVATE
                 );
-
         String token = preferences.getString(TOKEN_KEY, null);
-
         if (TextUtils.isEmpty(token)) {
             showStatus("Your session has expired. Please sign in again.");
             return;
         }
-
         executor.execute(() -> {
             try {
                 JSONArray response = getArray(
                         "/api/assignments",
                         token
                 );
-
                 List<JSONObject> assignments = new ArrayList<>();
-
                 for (int i = 0; i < response.length(); i++) {
                     JSONObject item = response.optJSONObject(i);
-
                     if (item != null) {
                         assignments.add(item);
                     }
                 }
-
                 assignments.sort(
                         Comparator.comparing(
                                 item -> item.optString(
@@ -197,23 +173,18 @@ public class AssignmentsFragment extends Fragment {
                                 )
                         )
                 );
-
                 if (!isAdded()) {
                     return;
                 }
-
                 requireActivity().runOnUiThread(() -> {
                     if (!isAdded()) {
                         return;
                     }
-
                     renderAssignments(assignments);
                 });
-
             } catch (Exception e) {
                 showStatus(
-                        "Unable to load assignments. "
-                                + "Please try again."
+                        "Unable to load assignments. Please try again."
                 );
             }
         });
@@ -221,42 +192,33 @@ public class AssignmentsFragment extends Fragment {
 
     private void renderAssignments(List<JSONObject> assignments) {
         assignmentsContainer.removeAllViews();
-
         statusText.setVisibility(View.GONE);
-
         if (assignments.isEmpty()) {
             showStatus("No assignments are available.");
             return;
         }
-
         for (JSONObject item : assignments) {
             LinearLayout card = createCard();
-
             String title = item.optString(
                     "title",
                     "Assignment"
             );
-
             String subject = item.optString(
                     "subjectName",
                     ""
             );
-
             String subjectCode = item.optString(
                     "subjectCode",
                     ""
             );
-
             String description = item.optString(
                     "description",
                     ""
             );
-
             String deadline = item.optString(
                     "dueDateTime",
                     ""
             );
-
             String marks = item.optString(
                     "maximumMarks",
                     ""
@@ -264,24 +226,19 @@ public class AssignmentsFragment extends Fragment {
 
             TextView assignmentTitle = new TextView(requireContext());
             assignmentTitle.setText(title);
-            assignmentTitle.setTextColor(
-                    requireContext().getColor(R.color.primary_text)
-            );
+            // Enforce deep dark text color for high contrast on Apple Wallet cream cards
+            assignmentTitle.setTextColor(android.graphics.Color.parseColor("#1A1A1A"));
             assignmentTitle.setTextSize(18);
             assignmentTitle.setTypeface(null, Typeface.BOLD);
-
             card.addView(assignmentTitle);
 
             if (!TextUtils.isEmpty(subject)
                     && !"null".equalsIgnoreCase(subject)) {
-
                 String subjectText = subject;
-
                 if (!TextUtils.isEmpty(subjectCode)
                         && !"null".equalsIgnoreCase(subjectCode)) {
                     subjectText += " (" + subjectCode + ")";
                 }
-
                 addBodyText(card, subjectText);
             }
 
@@ -302,13 +259,10 @@ public class AssignmentsFragment extends Fragment {
 
             if (!TextUtils.isEmpty(description)
                     && !"null".equalsIgnoreCase(description)) {
-
                 String summary = description;
-
                 if (summary.length() > 120) {
                     summary = summary.substring(0, 117) + "...";
                 }
-
                 addBodyText(card, summary);
             }
 
@@ -323,24 +277,19 @@ public class AssignmentsFragment extends Fragment {
             openButton.setOnClickListener(
                     v -> openAssignmentDetails(item)
             );
-
             card.addView(openButton);
-
         }
     }
 
     private void openAssignmentDetails(JSONObject assignment) {
         String assignmentId = assignment.optString("id", "");
-
         if (TextUtils.isEmpty(assignmentId)
                 || "null".equalsIgnoreCase(assignmentId)) {
             showStatus("This assignment has no valid ID.");
             return;
         }
-
         AssignmentDetailsFragment fragment =
                 AssignmentDetailsFragment.newInstance(assignmentId);
-
         requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction()
@@ -350,41 +299,41 @@ public class AssignmentsFragment extends Fragment {
     }
 
     private LinearLayout createCard() {
-        LinearLayout card = new LinearLayout(requireContext());
+        Context context = requireContext();
+        LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(18), dp(18), dp(18), dp(18));
-        card.setBackgroundResource(R.drawable.bg_card);
+
+        // Enforce Apple Wallet Cream surface (#E6DFD3) consistently
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(android.graphics.Color.parseColor("#E6DFD3"));
+        background.setCornerRadius(dp(16));
+        card.setBackground(background);
+        card.setElevation(dp(2));
 
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-
         params.topMargin = dp(14);
-
         assignmentsContainer.addView(card, params);
-
         return card;
     }
 
     private void addBodyText(LinearLayout card, String value) {
         TextView text = new TextView(requireContext());
         text.setText(value);
-        text.setTextColor(
-                requireContext().getColor(R.color.secondary_text)
-        );
+        // Use high-contrast rich dark gray for metadata body text on cream cards
+        text.setTextColor(android.graphics.Color.parseColor("#333333"));
         text.setTextSize(14);
         text.setLineSpacing(dp(3), 1.0f);
-
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 );
-
         params.topMargin = dp(8);
-
         card.addView(text, params);
     }
 
@@ -395,36 +344,27 @@ public class AssignmentsFragment extends Fragment {
 
     private String getString(String path, String token)
             throws Exception {
-
         HttpURLConnection connection = null;
-
         try {
             connection = (HttpURLConnection)
                     new URL(BASE_URL + path).openConnection();
-
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(10000);
             connection.setReadTimeout(10000);
-
             connection.setRequestProperty(
                     "Accept",
                     "application/json"
             );
-
             connection.setRequestProperty(
                     "Authorization",
                     "Bearer " + token
             );
-
             int status = connection.getResponseCode();
-
             InputStream stream =
                     status >= 200 && status < 300
                             ? connection.getInputStream()
                             : connection.getErrorStream();
-
             StringBuilder result = new StringBuilder();
-
             if (stream != null) {
                 try (BufferedReader reader =
                              new BufferedReader(
@@ -433,23 +373,18 @@ public class AssignmentsFragment extends Fragment {
                                              StandardCharsets.UTF_8
                                      )
                              )) {
-
                     String line;
-
                     while ((line = reader.readLine()) != null) {
                         result.append(line);
                     }
                 }
             }
-
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException(
                         "Request failed with HTTP " + status
                 );
             }
-
             return result.toString();
-
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -461,12 +396,10 @@ public class AssignmentsFragment extends Fragment {
         if (!isAdded()) {
             return;
         }
-
         requireActivity().runOnUiThread(() -> {
             if (!isAdded()) {
                 return;
             }
-
             statusText.setText(message);
             statusText.setVisibility(View.VISIBLE);
         });
@@ -483,12 +416,10 @@ public class AssignmentsFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-
         if (executor != null) {
             executor.shutdownNow();
             executor = null;
         }
-
         assignmentsContainer = null;
         statusText = null;
     }

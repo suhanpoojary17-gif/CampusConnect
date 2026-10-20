@@ -2,6 +2,7 @@ package com.campusconnect.app.features.notifications;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -24,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import com.campusconnect.app.R;
 import com.campusconnect.app.StudentDashboardActivity;
 import com.campusconnect.app.features.notices.NoticesFragment;
+import com.google.android.material.button.MaterialButton;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -44,1168 +46,821 @@ import java.util.concurrent.Executors;
 
 public class NotificationsFragment extends Fragment {
 
+    private static final String BASE_URL = "http://127.0.0.1:8080";
+    private static final String PREFS_NAME = "campusconnect_session";
+    private static final String TOKEN_KEY = "jwt_token";
 
-private static final String BASE_URL = "http://127.0.0.1:8080";
-private static final String PREFS_NAME = "campusconnect_session";
-private static final String TOKEN_KEY = "jwt_token";
+    private static final String STATE_SHOWING_NOTICES = "notifications_showing_notices";
+    private static final int CONTENT_CONTAINER_ID = 0x00CC0011;
 
-private static final String STATE_SHOWING_NOTICES =
-        "notifications_showing_notices";
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private ExecutorService executor;
 
-private static final int CONTENT_CONTAINER_ID = 0x00CC0011;
+    private FrameLayout contentContainer;
+    private LinearLayout notificationContent;
+    private LinearLayout notificationList;
 
-private final Handler mainHandler =
-        new Handler(Looper.getMainLooper());
+    private Button notificationsTab;
+    private Button noticesTab;
+    private Button allFilterButton;
+    private Button unreadFilterButton;
+    private MaterialButton markAllButton;
+    private MaterialButton clearAllButton;
+    private Button retryButton;
 
-private ExecutorService executor;
+    private TextView unreadSummary;
+    private TextView statusText;
+    private ProgressBar progressBar;
 
-private FrameLayout contentContainer;
-private LinearLayout notificationContent;
-private LinearLayout notificationList;
+    private final List<NotificationItem> notifications = new ArrayList<>();
 
-private Button notificationsTab;
-private Button noticesTab;
-private Button allFilterButton;
-private Button unreadFilterButton;
-private Button markAllButton;
-private Button retryButton;
+    private boolean unreadOnly = false;
+    private boolean showingNotices = false;
+    private boolean loading = false;
+    private boolean requestInProgress = false;
 
-private TextView unreadSummary;
-private TextView statusText;
-private ProgressBar progressBar;
-
-private final List<NotificationItem> notifications =
-        new ArrayList<>();
-
-private boolean unreadOnly = false;
-private boolean showingNotices = false;
-private boolean loading = false;
-private boolean requestInProgress = false;
-
-public NotificationsFragment() {
-    // Required empty constructor.
-}
-
-@Nullable
-@Override
-public View onCreateView(
-        @NonNull android.view.LayoutInflater inflater,
-        @Nullable ViewGroup container,
-        @Nullable Bundle savedInstanceState
-) {
-    if (executor == null || executor.isShutdown()) {
-        executor = Executors.newSingleThreadExecutor();
+    public NotificationsFragment() {
+        // Required empty constructor.
     }
 
-    Context context = requireContext();
+    @Nullable
+    @Override
+    public View onCreateView(
+            @NonNull android.view.LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
+    ) {
+        if (executor == null || executor.isShutdown()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
 
-    ScrollView page = new ScrollView(context);
-    page.setFillViewport(true);
-    page.setBackgroundColor(
-            context.getColor(R.color.main_background)
-    );
+        Context context = requireContext();
+        boolean isDarkMode = (context.getResources().getConfiguration().uiMode 
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
 
-    LinearLayout root = new LinearLayout(context);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(20), dp(20), dp(20), dp(28));
+        ScrollView page = new ScrollView(context);
+        page.setFillViewport(true);
+        page.setBackgroundColor(context.getColor(R.color.main_background));
 
-    page.addView(
-            root,
-            new ScrollView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-    );
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(20), dp(20), dp(28));
 
-    TextView eyebrow = new TextView(context);
-    eyebrow.setText("CAMPUSCONNECT");
-    eyebrow.setTextColor(
-            context.getColor(R.color.primary_accent)
-    );
-    eyebrow.setTextSize(12);
-    eyebrow.setLetterSpacing(0.12f);
-    eyebrow.setTypeface(null, Typeface.BOLD);
-    root.addView(eyebrow);
+        page.addView(
+                root,
+                new ScrollView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
 
-    TextView title = new TextView(context);
-    title.setText("Updates & Notices");
-    title.setTextColor(
-            context.getColor(R.color.primary_text)
-    );
-    title.setTextSize(28);
-    title.setTypeface(null, Typeface.BOLD);
+        TextView eyebrow = new TextView(context);
+        eyebrow.setText("CAMPUSCONNECT");
+        eyebrow.setTextColor(context.getColor(R.color.primary_accent));
+        eyebrow.setTextSize(12);
+        eyebrow.setLetterSpacing(0.12f);
+        eyebrow.setTypeface(null, Typeface.BOLD);
+        root.addView(eyebrow);
 
-    LinearLayout.LayoutParams titleParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        TextView title = new TextView(context);
+        title.setText("Updates & Notices");
+        title.setTextColor(isDarkMode ? android.graphics.Color.parseColor("#FFFFFF") : context.getColor(R.color.primary_text));
+        title.setTextSize(28);
+        title.setTypeface(null, Typeface.BOLD);
 
-    titleParams.topMargin = dp(8);
-    root.addView(title, titleParams);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        titleParams.topMargin = dp(8);
+        root.addView(title, titleParams);
 
-    TextView subtitle = new TextView(context);
-    subtitle.setText(
-            "Stay informed about academics and campus announcements."
-    );
-    subtitle.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    subtitle.setTextSize(14);
-    subtitle.setLineSpacing(dp(3), 1f);
+        TextView subtitle = new TextView(context);
+        subtitle.setText("Stay informed about academics and campus announcements.");
+        subtitle.setTextColor(context.getColor(R.color.notif_meta_text));
+        subtitle.setTextSize(14);
+        subtitle.setLineSpacing(dp(3), 1f);
 
-    LinearLayout.LayoutParams subtitleParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        subtitleParams.topMargin = dp(5);
+        root.addView(subtitle, subtitleParams);
 
-    subtitleParams.topMargin = dp(5);
-    root.addView(subtitle, subtitleParams);
+        LinearLayout tabs = new LinearLayout(context);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
 
-    LinearLayout tabs = new LinearLayout(context);
-    tabs.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams tabsParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        tabsParams.topMargin = dp(18);
+        root.addView(tabs, tabsParams);
 
-    LinearLayout.LayoutParams tabsParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        notificationsTab = new Button(context);
+        notificationsTab.setText("Notifications");
+        notificationsTab.setAllCaps(false);
+        notificationsTab.setOnClickListener(v -> showNotificationsTab());
 
-    tabsParams.topMargin = dp(18);
-    root.addView(tabs, tabsParams);
+        noticesTab = new Button(context);
+        noticesTab.setText("Campus Notices");
+        noticesTab.setAllCaps(false);
+        noticesTab.setOnClickListener(v -> showNoticesTab());
 
-    notificationsTab = new Button(context);
-    notificationsTab.setText("Notifications");
-    notificationsTab.setAllCaps(false);
-    notificationsTab.setOnClickListener(v -> showNotificationsTab());
+        tabs.addView(
+                notificationsTab,
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        );
 
-    noticesTab = new Button(context);
-    noticesTab.setText("Campus Notices");
-    noticesTab.setAllCaps(false);
-    noticesTab.setOnClickListener(v -> showNoticesTab());
+        tabs.addView(
+                noticesTab,
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        );
 
-    tabs.addView(
-            notificationsTab,
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            )
-    );
+        contentContainer = new FrameLayout(context);
+        contentContainer.setId(CONTENT_CONTAINER_ID);
 
-    tabs.addView(
-            noticesTab,
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            )
-    );
+        LinearLayout.LayoutParams contentParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        contentParams.topMargin = dp(8);
+        root.addView(contentContainer, contentParams);
 
-    contentContainer = new FrameLayout(context);
-    contentContainer.setId(CONTENT_CONTAINER_ID);
+        notificationContent = buildNotificationContent(context, isDarkMode);
 
-    LinearLayout.LayoutParams contentParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        Fragment restoredChild = getChildFragmentManager().findFragmentById(CONTENT_CONTAINER_ID);
+        boolean restoreNotices = savedInstanceState != null && savedInstanceState.getBoolean(STATE_SHOWING_NOTICES, false);
 
-    contentParams.topMargin = dp(8);
-    root.addView(contentContainer, contentParams);
+        if (restoreNotices && restoredChild instanceof NoticesFragment) {
+            showingNotices = true;
+            updateTabButtons();
+        } else {
+            if (restoredChild != null) {
+                getChildFragmentManager().beginTransaction().remove(restoredChild).commitNow();
+            }
+            showNotificationsTab();
+        }
 
-    notificationContent = buildNotificationContent(context);
+        return page;
+    }
 
-    Fragment restoredChild =
-            getChildFragmentManager().findFragmentById(
-                    CONTENT_CONTAINER_ID
-            );
+    private LinearLayout buildNotificationContent(Context context, boolean isDarkMode) {
+        LinearLayout content = new LinearLayout(context);
+        content.setOrientation(LinearLayout.VERTICAL);
 
-    boolean restoreNotices =
-            savedInstanceState != null
-                    && savedInstanceState.getBoolean(
-                            STATE_SHOWING_NOTICES,
-                            false
-                    );
+        LinearLayout summaryCard = new LinearLayout(context);
+        summaryCard.setOrientation(LinearLayout.VERTICAL);
+        summaryCard.setPadding(dp(18), dp(18), dp(18), dp(18));
+        summaryCard.setBackgroundResource(R.drawable.bg_card);
+        if (summaryCard.getBackground() != null) {
+            summaryCard.getBackground().setTint(context.getColor(R.color.notification_card_bg));
+        }
 
-    if (restoreNotices
-            && restoredChild instanceof NoticesFragment) {
+        content.addView(
+                summaryCard,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        TextView label = new TextView(context);
+        label.setText("YOUR INBOX");
+        label.setTextColor(context.getColor(R.color.notif_meta_text));
+        label.setTextSize(11);
+        label.setLetterSpacing(0.08f);
+        label.setTypeface(null, Typeface.BOLD);
+        summaryCard.addView(label);
+
+        unreadSummary = new TextView(context);
+        unreadSummary.setText("Loading unread count...");
+        unreadSummary.setTextColor(context.getColor(R.color.notif_title_text));
+        unreadSummary.setTextSize(18);
+        unreadSummary.setTypeface(null, Typeface.BOLD);
+
+        LinearLayout.LayoutParams summaryParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        summaryParams.topMargin = dp(8);
+        summaryCard.addView(unreadSummary, summaryParams);
+
+        LinearLayout actionButtonsLayout = new LinearLayout(context);
+        actionButtonsLayout.setOrientation(LinearLayout.HORIZONTAL);
+
+        markAllButton = new MaterialButton(context);
+        markAllButton.setText("Mark all read");
+        markAllButton.setAllCaps(false);
+        markAllButton.setEnabled(false);
+        markAllButton.setTextSize(12);
+        markAllButton.setCornerRadius(dp(10));
+        markAllButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                isDarkMode ? android.graphics.Color.parseColor("#1A1A1A") : context.getColor(R.color.primary_accent)));
+        markAllButton.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+        markAllButton.setOnClickListener(v -> markAllAsRead());
+
+        clearAllButton = new MaterialButton(context);
+        clearAllButton.setText("Clear All");
+        clearAllButton.setAllCaps(false);
+        clearAllButton.setEnabled(false);
+        clearAllButton.setTextSize(12);
+        clearAllButton.setCornerRadius(dp(10));
+        clearAllButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                isDarkMode ? android.graphics.Color.parseColor("#555555") : android.graphics.Color.parseColor("#666666")));
+        clearAllButton.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+        clearAllButton.setOnClickListener(v -> clearAllNotifications());
+
+        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        btnParams.topMargin = dp(12);
+        btnParams.rightMargin = dp(8);
+
+        actionButtonsLayout.addView(markAllButton, btnParams);
+        actionButtonsLayout.addView(clearAllButton, btnParams);
+        summaryCard.addView(actionButtonsLayout);
+
+        LinearLayout filters = new LinearLayout(context);
+        filters.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout.LayoutParams filtersParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        filtersParams.topMargin = dp(12);
+        content.addView(filters, filtersParams);
+
+        allFilterButton = new Button(context);
+        allFilterButton.setText("All");
+        allFilterButton.setAllCaps(false);
+        allFilterButton.setOnClickListener(v -> {
+            unreadOnly = false;
+            updateFilterButtons();
+            renderNotifications();
+        });
+
+        unreadFilterButton = new Button(context);
+        unreadFilterButton.setText("Unread");
+        unreadFilterButton.setAllCaps(false);
+        unreadFilterButton.setOnClickListener(v -> {
+            unreadOnly = true;
+            updateFilterButtons();
+            renderNotifications();
+        });
+
+        filters.addView(allFilterButton, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        filters.addView(unreadFilterButton, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        progressBar = new ProgressBar(context);
+        progressBar.setIndeterminate(true);
+
+        LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        progressParams.gravity = Gravity.CENTER_HORIZONTAL;
+        progressParams.topMargin = dp(20);
+        content.addView(progressBar, progressParams);
+
+        statusText = new TextView(context);
+        statusText.setTextColor(context.getColor(R.color.notif_meta_text));
+        statusText.setTextSize(14);
+        statusText.setGravity(Gravity.CENTER);
+        statusText.setLineSpacing(dp(3), 1f);
+
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        statusParams.topMargin = dp(10);
+        content.addView(statusText, statusParams);
+
+        retryButton = new Button(context);
+        retryButton.setText("Retry");
+        retryButton.setAllCaps(false);
+        retryButton.setVisibility(View.GONE);
+        retryButton.setOnClickListener(v -> loadNotifications());
+
+        LinearLayout.LayoutParams retryParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        retryParams.gravity = Gravity.CENTER_HORIZONTAL;
+        content.addView(retryButton, retryParams);
+
+        notificationList = new LinearLayout(context);
+        notificationList.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        listParams.topMargin = dp(4);
+        content.addView(notificationList, listParams);
+
+        updateFilterButtons();
+        return content;
+    }
+
+    private void showNotificationsTab() {
+        if (!isAdded() || contentContainer == null) return;
+
+        Fragment child = getChildFragmentManager().findFragmentById(CONTENT_CONTAINER_ID);
+        if (child != null) {
+            getChildFragmentManager().beginTransaction().remove(child).commitNow();
+        }
+
+        showingNotices = false;
+        contentContainer.removeAllViews();
+
+        if (notificationContent.getParent() instanceof ViewGroup) {
+            ((ViewGroup) notificationContent.getParent()).removeView(notificationContent);
+        }
+
+        contentContainer.addView(
+                notificationContent,
+                new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        updateTabButtons();
+        loadNotifications();
+    }
+
+    private void showNoticesTab() {
+        if (!isAdded() || contentContainer == null || showingNotices) return;
 
         showingNotices = true;
+        contentContainer.removeAllViews();
         updateTabButtons();
 
-    } else {
-        if (restoredChild != null) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .remove(restoredChild)
-                    .commitNow();
-        }
-
-        showNotificationsTab();
-    }
-
-    return page;
-}
-
-private LinearLayout buildNotificationContent(Context context) {
-    LinearLayout content = new LinearLayout(context);
-    content.setOrientation(LinearLayout.VERTICAL);
-
-    LinearLayout summaryCard = new LinearLayout(context);
-    summaryCard.setOrientation(LinearLayout.VERTICAL);
-    summaryCard.setPadding(dp(18), dp(18), dp(18), dp(18));
-    summaryCard.setBackgroundResource(R.drawable.bg_card);
-
-    content.addView(
-            summaryCard,
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-    );
-
-    TextView label = new TextView(context);
-    label.setText("YOUR INBOX");
-    label.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    label.setTextSize(11);
-    label.setLetterSpacing(0.08f);
-    label.setTypeface(null, Typeface.BOLD);
-    summaryCard.addView(label);
-
-    unreadSummary = new TextView(context);
-    unreadSummary.setText("Loading unread count...");
-    unreadSummary.setTextColor(
-            context.getColor(R.color.primary_text)
-    );
-    unreadSummary.setTextSize(18);
-    unreadSummary.setTypeface(null, Typeface.BOLD);
-
-    LinearLayout.LayoutParams summaryParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    summaryParams.topMargin = dp(8);
-    summaryCard.addView(unreadSummary, summaryParams);
-
-    markAllButton = new Button(context);
-    markAllButton.setText("Mark all as read");
-    markAllButton.setAllCaps(false);
-    markAllButton.setEnabled(false);
-    markAllButton.setOnClickListener(v -> markAllAsRead());
-
-    LinearLayout.LayoutParams markAllParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    markAllParams.topMargin = dp(8);
-    summaryCard.addView(markAllButton, markAllParams);
-
-    LinearLayout filters = new LinearLayout(context);
-    filters.setOrientation(LinearLayout.HORIZONTAL);
-
-    LinearLayout.LayoutParams filtersParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    filtersParams.topMargin = dp(10);
-    content.addView(filters, filtersParams);
-
-    allFilterButton = new Button(context);
-    allFilterButton.setText("All");
-    allFilterButton.setAllCaps(false);
-    allFilterButton.setOnClickListener(v -> {
-        unreadOnly = false;
-        updateFilterButtons();
-        renderNotifications();
-    });
-
-    unreadFilterButton = new Button(context);
-    unreadFilterButton.setText("Unread");
-    unreadFilterButton.setAllCaps(false);
-    unreadFilterButton.setOnClickListener(v -> {
-        unreadOnly = true;
-        updateFilterButtons();
-        renderNotifications();
-    });
-
-    filters.addView(
-            allFilterButton,
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            )
-    );
-
-    filters.addView(
-            unreadFilterButton,
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            )
-    );
-
-    progressBar = new ProgressBar(context);
-    progressBar.setIndeterminate(true);
-
-    LinearLayout.LayoutParams progressParams =
-            new LinearLayout.LayoutParams(dp(36), dp(36));
-
-    progressParams.gravity = Gravity.CENTER_HORIZONTAL;
-    progressParams.topMargin = dp(20);
-    content.addView(progressBar, progressParams);
-
-    statusText = new TextView(context);
-    statusText.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    statusText.setTextSize(14);
-    statusText.setGravity(Gravity.CENTER);
-    statusText.setLineSpacing(dp(3), 1f);
-
-    LinearLayout.LayoutParams statusParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    statusParams.topMargin = dp(10);
-    content.addView(statusText, statusParams);
-
-    retryButton = new Button(context);
-    retryButton.setText("Retry");
-    retryButton.setAllCaps(false);
-    retryButton.setVisibility(View.GONE);
-    retryButton.setOnClickListener(v -> loadNotifications());
-
-    LinearLayout.LayoutParams retryParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    retryParams.gravity = Gravity.CENTER_HORIZONTAL;
-    content.addView(retryButton, retryParams);
-
-    notificationList = new LinearLayout(context);
-    notificationList.setOrientation(LinearLayout.VERTICAL);
-
-    LinearLayout.LayoutParams listParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    listParams.topMargin = dp(4);
-    content.addView(notificationList, listParams);
-
-    updateFilterButtons();
-
-    return content;
-}
-
-private void showNotificationsTab() {
-    if (!isAdded() || contentContainer == null) {
-        return;
-    }
-
-    Fragment child =
-            getChildFragmentManager().findFragmentById(
-                    CONTENT_CONTAINER_ID
-            );
-
-    if (child != null) {
         getChildFragmentManager()
                 .beginTransaction()
-                .remove(child)
-                .commitNow();
+                .replace(CONTENT_CONTAINER_ID, new NoticesFragment())
+                .commit();
     }
 
-    showingNotices = false;
-    contentContainer.removeAllViews();
-
-    if (notificationContent.getParent() instanceof ViewGroup) {
-        ((ViewGroup) notificationContent.getParent())
-                .removeView(notificationContent);
+    private void updateTabButtons() {
+        if (notificationsTab != null) notificationsTab.setEnabled(showingNotices);
+        if (noticesTab != null) noticesTab.setEnabled(!showingNotices);
     }
 
-    contentContainer.addView(
-            notificationContent,
-            new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-    );
-
-    updateTabButtons();
-    loadNotifications();
-}
-
-private void showNoticesTab() {
-    if (!isAdded() || contentContainer == null || showingNotices) {
-        return;
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (isAdded() && !showingNotices && getActivity() instanceof StudentDashboardActivity) {
+            ((StudentDashboardActivity) getActivity()).refreshUnreadBadge();
+        }
     }
 
-    showingNotices = true;
-    contentContainer.removeAllViews();
-    updateTabButtons();
+    private void loadNotifications() {
+        if (!isAdded() || showingNotices || loading || executor == null || executor.isShutdown()) return;
 
-    getChildFragmentManager()
-            .beginTransaction()
-            .replace(
-                    CONTENT_CONTAINER_ID,
-                    new NoticesFragment()
-            )
-            .commit();
-}
+        SharedPreferences preferences = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String token = preferences.getString(TOKEN_KEY, null);
 
-private void updateTabButtons() {
-    if (notificationsTab != null) {
-        notificationsTab.setEnabled(showingNotices);
-    }
+        if (token == null || token.trim().isEmpty()) {
+            setLoadingState(false, "Your session has expired. Please sign in again.", false);
+            return;
+        }
 
-    if (noticesTab != null) {
-        noticesTab.setEnabled(!showingNotices);
-    }
-}
+        loading = true;
+        setLoadingState(true, "Loading notifications...", false);
 
-@Override
-public void onResume() {
-    super.onResume();
+        executor.execute(() -> {
+            try {
+                JSONArray response = new JSONArray(request("GET", "/api/notifications/my", token));
+                List<NotificationItem> loaded = new ArrayList<>();
 
-    if (isAdded()
-            && !showingNotices
-            && getActivity() instanceof StudentDashboardActivity) {
+                for (int i = 0; i < response.length(); i++) {
+                    JSONObject object = response.optJSONObject(i);
+                    if (object == null) continue;
 
-        ((StudentDashboardActivity) getActivity())
-                .refreshUnreadBadge();
-    }
-}
+                    String id = object.optString("id", "");
+                    String title = object.optString("title", "Notification");
+                    String message = object.optString("message", "");
+                    String type = object.optString("type", "GENERAL");
+                    boolean read = object.has("isRead") ? object.optBoolean("isRead", false) : object.optBoolean("read", false);
 
-private void loadNotifications() {
-    if (!isAdded()
-            || showingNotices
-            || loading
-            || executor == null
-            || executor.isShutdown()) {
-        return;
-    }
-
-    SharedPreferences preferences =
-            requireContext().getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-            );
-
-    String token = preferences.getString(TOKEN_KEY, null);
-
-    if (token == null || token.trim().isEmpty()) {
-        setLoadingState(
-                false,
-                "Your session has expired. Please sign in again.",
-                false
-        );
-        return;
-    }
-
-    loading = true;
-    setLoadingState(true, "Loading notifications...", false);
-
-    executor.execute(() -> {
-        try {
-            JSONArray response = new JSONArray(
-                    request(
-                            "GET",
-                            "/api/notifications/my",
-                            token
-                    )
-            );
-
-            List<NotificationItem> loaded = new ArrayList<>();
-
-            for (int i = 0; i < response.length(); i++) {
-                JSONObject object = response.optJSONObject(i);
-
-                if (object == null) {
-                    continue;
+                    loaded.add(new NotificationItem(
+                            id, title, message, type, read, object.optString("createdAt", "")
+                    ));
                 }
 
-                String id = object.optString("id", "");
-                String title = object.optString(
-                        "title",
-                        "Notification"
-                );
-                String message = object.optString("message", "");
-                String type = object.optString("type", "GENERAL");
+                long unreadCount = parseUnreadCount(request("GET", "/api/notifications/unread-count", token));
 
-                boolean read = object.has("isRead")
-                        ? object.optBoolean("isRead", false)
-                        : object.optBoolean("read", false);
+                mainHandler.post(() -> {
+                    if (!isAdded() || showingNotices) return;
 
-                loaded.add(
-                        new NotificationItem(
-                                id,
-                                title,
-                                message,
-                                type,
-                                read,
-                                object.optString("createdAt", "")
-                        )
-                );
+                    notifications.clear();
+                    notifications.addAll(loaded);
+
+                    updateUnreadSummary(unreadCount);
+                    setLoadingState(false, "", false);
+                    renderNotifications();
+
+                    if (getActivity() instanceof StudentDashboardActivity) {
+                        ((StudentDashboardActivity) getActivity()).updateUnreadBadge(unreadCount);
+                    }
+                });
+
+            } catch (Exception exception) {
+                mainHandler.post(() -> {
+                    if (!isAdded() || showingNotices) return;
+                    setLoadingState(false, "Unable to load notifications. Check your connection and retry.", true);
+                });
+            } finally {
+                loading = false;
             }
-
-            long unreadCount = parseUnreadCount(
-                    request(
-                            "GET",
-                            "/api/notifications/unread-count",
-                            token
-                    )
-            );
-
-            mainHandler.post(() -> {
-                if (!isAdded() || showingNotices) {
-                    return;
-                }
-
-                notifications.clear();
-                notifications.addAll(loaded);
-
-                updateUnreadSummary(unreadCount);
-                setLoadingState(false, "", false);
-                renderNotifications();
-
-                if (getActivity()
-                        instanceof StudentDashboardActivity) {
-                    ((StudentDashboardActivity) getActivity())
-                            .updateUnreadBadge(unreadCount);
-                }
-            });
-
-        } catch (Exception exception) {
-            mainHandler.post(() -> {
-                if (!isAdded() || showingNotices) {
-                    return;
-                }
-
-                setLoadingState(
-                        false,
-                        "Unable to load notifications. Check your connection and retry.",
-                        true
-                );
-            });
-
-        } finally {
-            loading = false;
-        }
-    });
-}
-
-private void markAsRead(NotificationItem item) {
-    if (item.read
-            || item.id.isEmpty()
-            || requestInProgress
-            || executor == null
-            || executor.isShutdown()) {
-        return;
+        });
     }
 
-    requestInProgress = true;
+    private void markAsRead(NotificationItem item) {
+        if (item.read || item.id.isEmpty() || requestInProgress || executor == null || executor.isShutdown()) return;
 
-    executor.execute(() -> {
-        try {
-            request(
-                    "PUT",
-                    "/api/notifications/" + item.id + "/read",
-                    getToken()
-            );
+        requestInProgress = true;
 
-            mainHandler.post(() -> {
-                if (!isAdded()) {
-                    return;
-                }
+        executor.execute(() -> {
+            try {
+                request("PUT", "/api/notifications/" + item.id + "/read", getToken());
 
-                item.read = true;
-                renderNotifications();
-
-                if (getActivity()
-                        instanceof StudentDashboardActivity) {
-                    ((StudentDashboardActivity) getActivity())
-                            .refreshUnreadBadge();
-                }
-            });
-
-        } catch (Exception exception) {
-            mainHandler.post(() -> {
-                if (isAdded()) {
-                    showToast("Unable to mark notification as read.");
-                }
-            });
-
-        } finally {
-            mainHandler.post(() -> requestInProgress = false);
-        }
-    });
-}
-
-private void markAllAsRead() {
-    if (requestInProgress
-            || getUnreadCountLocally() == 0
-            || executor == null
-            || executor.isShutdown()) {
-        return;
-    }
-
-    requestInProgress = true;
-    markAllButton.setEnabled(false);
-
-    executor.execute(() -> {
-        try {
-            request(
-                    "PUT",
-                    "/api/notifications/read-all",
-                    getToken()
-            );
-
-            mainHandler.post(() -> {
-                if (!isAdded()) {
-                    return;
-                }
-
-                for (NotificationItem item : notifications) {
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
                     item.read = true;
-                }
+                    renderNotifications();
 
-                unreadOnly = false;
-                updateFilterButtons();
-                renderNotifications();
-                updateUnreadSummary(0);
+                    if (getActivity() instanceof StudentDashboardActivity) {
+                        ((StudentDashboardActivity) getActivity()).refreshUnreadBadge();
+                    }
+                });
+            } catch (Exception exception) {
+                mainHandler.post(() -> {
+                    if (isAdded()) showToast("Unable to mark notification as read.");
+                });
+            } finally {
+                mainHandler.post(() -> requestInProgress = false);
+            }
+        });
+    }
 
-                if (getActivity()
-                        instanceof StudentDashboardActivity) {
-                    ((StudentDashboardActivity) getActivity())
-                            .updateUnreadBadge(0);
-                }
+    private void markAllAsRead() {
+        if (requestInProgress || getUnreadCountLocally() == 0 || executor == null || executor.isShutdown()) return;
 
-                showToast("All notifications marked as read.");
-            });
+        requestInProgress = true;
+        if (markAllButton != null) markAllButton.setEnabled(false);
 
-        } catch (Exception exception) {
-            mainHandler.post(() -> {
-                if (isAdded()) {
-                    showToast(
-                            "Unable to mark all notifications as read."
-                    );
-                }
-            });
+        executor.execute(() -> {
+            try {
+                request("PUT", "/api/notifications/read-all", getToken());
 
-        } finally {
-            mainHandler.post(() -> {
-                requestInProgress = false;
+                mainHandler.post(() -> {
+                    if (!isAdded()) return;
 
-                if (isAdded() && markAllButton != null) {
-                    markAllButton.setEnabled(
-                            getUnreadCountLocally() > 0
-                    );
-                }
-            });
+                    for (NotificationItem item : notifications) {
+                        item.read = true;
+                    }
+
+                    unreadOnly = false;
+                    updateFilterButtons();
+                    renderNotifications();
+                    updateUnreadSummary(0);
+
+                    if (getActivity() instanceof StudentDashboardActivity) {
+                        ((StudentDashboardActivity) getActivity()).updateUnreadBadge(0);
+                    }
+
+                    showToast("All notifications marked as read.");
+                });
+            } catch (Exception exception) {
+                mainHandler.post(() -> {
+                    if (isAdded()) showToast("Unable to mark all notifications as read.");
+                });
+            } finally {
+                mainHandler.post(() -> {
+                    requestInProgress = false;
+                    if (isAdded() && markAllButton != null) {
+                        markAllButton.setEnabled(getUnreadCountLocally() > 0);
+                    }
+                });
+            }
+        });
+    }
+
+    private void clearAllNotifications() {
+        if (requestInProgress || notifications.isEmpty()) return;
+
+        notifications.clear();
+        renderNotifications();
+        updateUnreadSummary(0);
+
+        if (getActivity() instanceof StudentDashboardActivity) {
+            ((StudentDashboardActivity) getActivity()).updateUnreadBadge(0);
         }
-    });
-}
 
-private void renderNotifications() {
-    if (!isAdded()
-            || notificationList == null
-            || showingNotices) {
-        return;
+        showToast("All notifications cleared.");
     }
 
-    notificationList.removeAllViews();
+    private void renderNotifications() {
+        if (!isAdded() || notificationList == null || showingNotices) return;
 
-    List<NotificationItem> visible = new ArrayList<>();
-
-    for (NotificationItem item : notifications) {
-        if (!unreadOnly || !item.read) {
-            visible.add(item);
-        }
-    }
-
-    if (visible.isEmpty()) {
-        TextView empty = new TextView(requireContext());
-
-        empty.setText(
-                unreadOnly
-                        ? "You're all caught up. No unread notifications."
-                        : "No notifications yet."
-        );
-
-        empty.setTextColor(
-                requireContext().getColor(R.color.secondary_text)
-        );
-        empty.setTextSize(14);
-        empty.setGravity(Gravity.CENTER);
-        empty.setPadding(dp(16), dp(28), dp(16), dp(28));
-
-        notificationList.addView(empty);
-        return;
-    }
-
-    for (NotificationItem item : visible) {
-        addNotificationCard(item);
-    }
-}
-
-private void addNotificationCard(NotificationItem item) {
-    Context context = requireContext();
-
-    LinearLayout card = new LinearLayout(context);
-    card.setOrientation(LinearLayout.VERTICAL);
-    card.setPadding(dp(16), dp(16), dp(16), dp(16));
-    card.setBackgroundResource(R.drawable.bg_card);
-
-    LinearLayout.LayoutParams cardParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    cardParams.topMargin = dp(12);
-    notificationList.addView(card, cardParams);
-
-    LinearLayout header = new LinearLayout(context);
-    header.setOrientation(LinearLayout.HORIZONTAL);
-    header.setGravity(Gravity.CENTER_VERTICAL);
-    card.addView(header);
-
-    TextView category = new TextView(context);
-    category.setText(formatCategory(item.type));
-    category.setTextColor(
-            context.getColor(R.color.primary_accent)
-    );
-    category.setTextSize(11);
-    category.setTypeface(null, Typeface.BOLD);
-
-    header.addView(
-            category,
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            )
-    );
-
-    TextView readState = new TextView(context);
-    readState.setText(item.read ? "READ" : "UNREAD");
-    readState.setTextColor(
-            context.getColor(
-                    item.read
-                            ? R.color.secondary_text
-                            : R.color.primary_accent
-            )
-    );
-    readState.setTextSize(10);
-    readState.setTypeface(null, Typeface.BOLD);
-    header.addView(readState);
-
-    TextView title = new TextView(context);
-    title.setText(item.title);
-    title.setTextColor(
-            context.getColor(R.color.primary_text)
-    );
-    title.setTextSize(16);
-    title.setTypeface(null, Typeface.BOLD);
-
-    LinearLayout.LayoutParams titleParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    titleParams.topMargin = dp(10);
-    card.addView(title, titleParams);
-
-    TextView message = new TextView(context);
-    message.setText(item.message);
-    message.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    message.setTextSize(14);
-    message.setLineSpacing(dp(3), 1f);
-
-    LinearLayout.LayoutParams messageParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    messageParams.topMargin = dp(6);
-    card.addView(message, messageParams);
-
-    TextView timestamp = new TextView(context);
-    timestamp.setText(formatTimestamp(item.createdAt));
-    timestamp.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    timestamp.setTextSize(11);
-
-    LinearLayout.LayoutParams timestampParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-
-    timestampParams.topMargin = dp(10);
-    card.addView(timestamp, timestampParams);
-
-    if (!item.read) {
-        Button markReadButton = new Button(context);
-        markReadButton.setText("Mark as read");
-        markReadButton.setAllCaps(false);
-        markReadButton.setOnClickListener(v -> markAsRead(item));
-
-        LinearLayout.LayoutParams buttonParams =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                );
-
-        buttonParams.topMargin = dp(4);
-        card.addView(markReadButton, buttonParams);
-    }
-}
-
-private void updateUnreadSummary(long count) {
-    if (unreadSummary != null) {
-        unreadSummary.setText(
-                count == 1
-                        ? "1 unread notification"
-                        : count + " unread notifications"
-        );
-    }
-
-    if (markAllButton != null) {
-        markAllButton.setEnabled(count > 0);
-    }
-}
-
-private void updateFilterButtons() {
-    if (allFilterButton != null) {
-        allFilterButton.setEnabled(unreadOnly);
-    }
-
-    if (unreadFilterButton != null) {
-        unreadFilterButton.setEnabled(!unreadOnly);
-    }
-}
-
-private void setLoadingState(
-        boolean isLoading,
-        String message,
-        boolean allowRetry
-) {
-    loading = isLoading;
-
-    if (progressBar != null) {
-        progressBar.setVisibility(
-                isLoading ? View.VISIBLE : View.GONE
-        );
-    }
-
-    if (statusText != null) {
-        statusText.setText(message);
-        statusText.setVisibility(
-                message.isEmpty() ? View.GONE : View.VISIBLE
-        );
-    }
-
-    if (retryButton != null) {
-        retryButton.setVisibility(
-                allowRetry ? View.VISIBLE : View.GONE
-        );
-    }
-
-    if (isLoading && notificationList != null) {
         notificationList.removeAllViews();
+        List<NotificationItem> visible = new ArrayList<>();
+
+        for (NotificationItem item : notifications) {
+            if (!unreadOnly || !item.read) {
+                visible.add(item);
+            }
+        }
+
+        if (visible.isEmpty()) {
+            TextView empty = new TextView(requireContext());
+            empty.setText(unreadOnly ? "You're all caught up. No unread notifications." : "No notifications yet.");
+            empty.setTextColor(requireContext().getColor(R.color.notif_meta_text));
+            empty.setTextSize(14);
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(dp(16), dp(28), dp(16), dp(28));
+            notificationList.addView(empty);
+            return;
+        }
+
+        for (NotificationItem item : visible) {
+            addNotificationCard(item);
+        }
     }
-}
 
-private long getUnreadCountLocally() {
-    long count = 0;
+    private void addNotificationCard(NotificationItem item) {
+        Context context = requireContext();
+        boolean isDarkMode = (context.getResources().getConfiguration().uiMode 
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
 
-    for (NotificationItem item : notifications) {
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(16), dp(16), dp(16));
+        card.setBackgroundResource(R.drawable.bg_card);
+
+        if (card.getBackground() != null) {
+            card.getBackground().setTint(context.getColor(R.color.notification_card_bg));
+        }
+
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.topMargin = dp(12);
+        notificationList.addView(card, cardParams);
+
+        LinearLayout header = new LinearLayout(context);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        card.addView(header);
+
+        TextView category = new TextView(context);
+        category.setText(formatCategory(item.type));
+        category.setTextColor(context.getColor(R.color.notif_category_text));
+        category.setTextSize(11);
+        category.setTypeface(null, Typeface.BOLD);
+
+        header.addView(
+                category,
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        );
+
         if (!item.read) {
-            count++;
-        }
-    }
-
-    return count;
-}
-
-private long parseUnreadCount(String response)
-        throws Exception {
-    String value = response.trim();
-
-    try {
-        return Long.parseLong(value);
-    } catch (NumberFormatException ignored) {
-        JSONObject object = new JSONObject(value);
-
-        if (object.has("unreadCount")) {
-            return object.optLong("unreadCount", 0);
+            TextView actionClose = new TextView(context);
+            actionClose.setText("✕");
+            actionClose.setTextSize(16);
+            actionClose.setTypeface(null, Typeface.BOLD);
+            actionClose.setTextColor(context.getColor(R.color.notif_title_text));
+            actionClose.setPadding(dp(8), dp(4), dp(8), dp(4));
+            actionClose.setOnClickListener(v -> markAsRead(item));
+            header.addView(actionClose);
+        } else {
+            TextView readState = new TextView(context);
+            readState.setText("READ");
+            readState.setTextColor(context.getColor(R.color.notif_meta_text));
+            readState.setTextSize(10);
+            readState.setTypeface(null, Typeface.BOLD);
+            header.addView(readState);
         }
 
-        if (object.has("count")) {
-            return object.optLong("count", 0);
-        }
+        TextView title = new TextView(context);
+        title.setText(item.title);
+        title.setTextColor(context.getColor(R.color.notif_title_text));
+        title.setTextSize(16);
+        title.setTypeface(null, Typeface.BOLD);
 
-        throw new Exception("Unexpected unread-count response");
-    }
-}
-
-private String getToken() {
-    Context context = getContext();
-
-    if (context == null) {
-        return null;
-    }
-
-    SharedPreferences preferences =
-            context.getSharedPreferences(
-                    PREFS_NAME,
-                    Context.MODE_PRIVATE
-            );
-
-    return preferences.getString(TOKEN_KEY, null);
-}
-
-private String request(
-        String method,
-        String path,
-        String token
-) throws Exception {
-    if (token == null || token.trim().isEmpty()) {
-        throw new Exception("Session token is missing");
-    }
-
-    HttpURLConnection connection = null;
-
-    try {
-        connection = (HttpURLConnection)
-                new URL(BASE_URL + path).openConnection();
-
-        connection.setRequestMethod(method);
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(15000);
-
-        connection.setRequestProperty(
-                "Authorization",
-                "Bearer " + token
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
         );
+        titleParams.topMargin = dp(8);
+        card.addView(title, titleParams);
 
-        connection.setRequestProperty(
-                "Accept",
-                "application/json"
+        TextView message = new TextView(context);
+        message.setText(item.message);
+        message.setTextColor(context.getColor(R.color.notif_body_text));
+        message.setTextSize(14);
+        message.setLineSpacing(dp(3), 1f);
+
+        LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
         );
+        messageParams.topMargin = dp(6);
+        card.addView(message, messageParams);
 
-        int status = connection.getResponseCode();
+        TextView timestamp = new TextView(context);
+        timestamp.setText(formatTimestamp(item.createdAt));
+        timestamp.setTextColor(context.getColor(R.color.notif_meta_text));
+        timestamp.setTextSize(11);
 
-        InputStream stream =
-                status >= 200 && status < 300
-                        ? connection.getInputStream()
-                        : connection.getErrorStream();
+        LinearLayout.LayoutParams timestampParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        timestampParams.topMargin = dp(10);
+        card.addView(timestamp, timestampParams);
+    }
 
-        StringBuilder response = new StringBuilder();
+    private void updateUnreadSummary(long count) {
+        if (unreadSummary != null) {
+            unreadSummary.setText(count == 1 ? "1 unread notification" : count + " unread notifications");
+        }
+        if (markAllButton != null) {
+            markAllButton.setEnabled(count > 0);
+        }
+        if (clearAllButton != null) {
+            clearAllButton.setEnabled(!notifications.isEmpty());
+        }
+    }
 
-        if (stream != null) {
-            try (
-                    InputStream input = stream;
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(
-                                    input,
-                                    StandardCharsets.UTF_8
-                            )
-                    )
-            ) {
-                String line;
+    private void updateFilterButtons() {
+        if (allFilterButton != null) allFilterButton.setEnabled(unreadOnly);
+        if (unreadFilterButton != null) unreadFilterButton.setEnabled(!unreadOnly);
+    }
 
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
+    private void setLoadingState(boolean isLoading, String message, boolean allowRetry) {
+        loading = isLoading;
+        if (progressBar != null) progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        if (statusText != null) {
+            statusText.setText(message);
+            statusText.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE);
+        }
+        if (retryButton != null) retryButton.setVisibility(allowRetry ? View.VISIBLE : View.GONE);
+        if (isLoading && notificationList != null) notificationList.removeAllViews();
+    }
+
+    private long getUnreadCountLocally() {
+        long count = 0;
+        for (NotificationItem item : notifications) {
+            if (!item.read) count++;
+        }
+        return count;
+    }
+
+    private long parseUnreadCount(String response) throws Exception {
+        String value = response.trim();
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+            JSONObject object = new JSONObject(value);
+            if (object.has("unreadCount")) return object.optLong("unreadCount", 0);
+            if (object.has("count")) return object.optLong("count", 0);
+            throw new Exception("Unexpected unread-count response");
+        }
+    }
+
+    private String getToken() {
+        Context context = getContext();
+        if (context == null) return null;
+        SharedPreferences preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return preferences.getString(TOKEN_KEY, null);
+    }
+
+    private String request(String method, String path, String token) throws Exception {
+        if (token == null || token.trim().isEmpty()) throw new Exception("Session token is missing");
+
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(BASE_URL + path).openConnection();
+            connection.setRequestMethod(method);
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(15000);
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Accept", "application/json");
+
+            int status = connection.getResponseCode();
+            InputStream stream = status >= 200 && status < 300 ? connection.getInputStream() : connection.getErrorStream();
+
+            StringBuilder response = new StringBuilder();
+            if (stream != null) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
                 }
             }
-        }
 
-        if (status < 200 || status >= 300) {
-            throw new Exception(
-                    "HTTP " + status + ": " + response
-            );
-        }
-
-        return response.toString();
-
-    } finally {
-        if (connection != null) {
-            connection.disconnect();
+            if (status < 200 || status >= 300) {
+                throw new Exception("HTTP " + status + ": " + response);
+            }
+            return response.toString();
+        } finally {
+            if (connection != null) connection.disconnect();
         }
     }
-}
 
-private String formatCategory(String type) {
-    if (type == null || type.trim().isEmpty()) {
-        return "General";
-    }
-
-    String[] words =
-            type.toLowerCase(Locale.ROOT).split("_");
-
-    StringBuilder result = new StringBuilder();
-
-    for (String word : words) {
-        if (result.length() > 0) {
-            result.append(' ');
-        }
-
-        if (!word.isEmpty()) {
-            result.append(
-                    word.substring(0, 1).toUpperCase(Locale.ROOT)
-            );
-
-            if (word.length() > 1) {
-                result.append(word.substring(1));
+    private String formatCategory(String type) {
+        if (type == null || type.trim().isEmpty()) return "General";
+        String[] words = type.toLowerCase(Locale.ROOT).split("_");
+        StringBuilder result = new StringBuilder();
+        for (String word : words) {
+            if (result.length() > 0) result.append(' ');
+            if (!word.isEmpty()) {
+                result.append(word.substring(0, 1).toUpperCase(Locale.ROOT));
+                if (word.length() > 1) result.append(word.substring(1));
             }
         }
+        return result.toString();
     }
 
-    return result.toString();
-}
-
-private String formatTimestamp(String timestamp) {
-    if (timestamp == null
-            || timestamp.trim().isEmpty()
-            || "null".equalsIgnoreCase(timestamp)) {
-        return "Date unavailable";
-    }
-
-    try {
-        String normalized = timestamp.replace('T', ' ');
-
-        if (normalized.length() >= 19) {
-            normalized = normalized.substring(0, 19);
-
-            SimpleDateFormat inputFormat =
-                    new SimpleDateFormat(
-                            "yyyy-MM-dd HH:mm:ss",
-                            Locale.getDefault()
-                    );
-
-            inputFormat.setLenient(false);
-
-            Date date = inputFormat.parse(normalized);
-
-            if (date != null) {
-                SimpleDateFormat outputFormat =
-                        new SimpleDateFormat(
-                                "dd MMM yyyy, hh:mm a",
-                                Locale.getDefault()
-                        );
-
-                return outputFormat.format(date);
-            }
+    private String formatTimestamp(String timestamp) {
+        if (timestamp == null || timestamp.trim().isEmpty() || "null".equalsIgnoreCase(timestamp)) {
+            return "Date unavailable";
         }
-    } catch (Exception ignored) {
-        // Use the original server timestamp if parsing fails.
+        try {
+            String normalized = timestamp.replace('T', ' ');
+            if (normalized.length() >= 19) {
+                normalized = normalized.substring(0, 19);
+                SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                inputFormat.setLenient(false);
+                Date date = inputFormat.parse(normalized);
+                if (date != null) {
+                    SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault());
+                    return outputFormat.format(date);
+                }
+            }
+        } catch (Exception ignored) {}
+        return timestamp.replace('T', ' ');
     }
 
-    return timestamp.replace('T', ' ');
-}
-
-private void showToast(String message) {
-    Context context = getContext();
-
-    if (context != null) {
-        Toast.makeText(
-                context,
-                message,
-                Toast.LENGTH_SHORT
-        ).show();
-    }
-}
-
-private int dp(int value) {
-    return Math.round(
-            value * getResources()
-                    .getDisplayMetrics()
-                    .density
-    );
-}
-
-@Override
-public void onSaveInstanceState(@NonNull Bundle outState) {
-    outState.putBoolean(
-            STATE_SHOWING_NOTICES,
-            showingNotices
-    );
-
-    super.onSaveInstanceState(outState);
-}
-
-@Override
-public void onDestroyView() {
-    if (executor != null) {
-        executor.shutdownNow();
-        executor = null;
+    private void showToast(String message) {
+        Context context = getContext();
+        if (context != null) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+        }
     }
 
-    contentContainer = null;
-    notificationContent = null;
-    notificationList = null;
-    notificationsTab = null;
-    noticesTab = null;
-    allFilterButton = null;
-    unreadFilterButton = null;
-    markAllButton = null;
-    retryButton = null;
-    unreadSummary = null;
-    statusText = null;
-    progressBar = null;
-
-    super.onDestroyView();
-}
-
-private static class NotificationItem {
-
-    final String id;
-    final String title;
-    final String message;
-    final String type;
-    final String createdAt;
-
-    boolean read;
-
-    NotificationItem(
-            String id,
-            String title,
-            String message,
-            String type,
-            boolean read,
-            String createdAt
-    ) {
-        this.id = id;
-        this.title = title;
-        this.message = message;
-        this.type = type;
-        this.read = read;
-        this.createdAt = createdAt;
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
-}
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        outState.putBoolean(STATE_SHOWING_NOTICES, showingNotices);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onDestroyView() {
+        if (executor != null) {
+            executor.shutdownNow();
+            executor = null;
+        }
+        contentContainer = null;
+        notificationContent = null;
+        notificationList = null;
+        notificationsTab = null;
+        noticesTab = null;
+        allFilterButton = null;
+        unreadFilterButton = null;
+        markAllButton = null;
+        clearAllButton = null;
+        retryButton = null;
+        unreadSummary = null;
+        statusText = null;
+        progressBar = null;
+        super.onDestroyView();
+    }
+
+    private static class NotificationItem {
+        final String id;
+        final String title;
+        final String message;
+        final String type;
+        final String createdAt;
+        boolean read;
+
+        NotificationItem(String id, String title, String message, String type, boolean read, String createdAt) {
+            this.id = id;
+            this.title = title;
+            this.message = message;
+            this.type = type;
+            this.read = read;
+            this.createdAt = createdAt;
+        }
+    }
 }

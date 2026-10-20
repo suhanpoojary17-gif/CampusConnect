@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.CampusConnect"
-        parent="Theme.MaterialComponents.DayNight.NoActionBar">
-
+    <style name="Theme.CampusConnect" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary_accent</item>
         <item name="colorPrimaryVariant">@color/accent_hover</item>
         <item name="colorSecondary">@color/primary_accent</item>
-
         <item name="android:colorAccent">@color/primary_accent</item>
-
-        <item name="android:windowBackground">
-            @color/main_background
-        </item>
-
-        <item name="android:statusBarColor">
-            @color/main_background
-        </item>
-
-        <item name="android:navigationBarColor">
-            @color/main_background
-        </item>
-
+        
+        <!-- Window & System Bar Backgrounds -->
+        <item name="android:windowBackground">@color/main_background</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">@color/main_background</item>
+        <item name="android:navigationBarColor">@color/main_background</item>
         <item name="android:windowLightStatusBar">false</item>
 
+        <!-- Backgrounds -->
+        <item name="android:windowBackground">@color/main_background</item>
+        
+        <!-- Canvas Text (Turns White on the Black Canvas) -->
+        <item name="android:textColorPrimary">#FFFFFF</item> 
+        
+        <!-- Card Text (Stays Dark because your cards are still light pastel/cream!) -->
+        <item name="colorOnSurface">#1C1B1A</item>
     </style>
-
 </resources>

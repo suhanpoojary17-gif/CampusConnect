@@ -54,10 +54,10 @@ public View onCreateView(
     TextView eyebrow = new TextView(context);
     eyebrow.setText("CAMPUSCONNECT");
     eyebrow.setTextColor(
-            context.getColor(R.color.primary_accent)
+            context.getColor(R.color.secondary_text)
     );
     eyebrow.setTextSize(12);
-    eyebrow.setLetterSpacing(0.12f);
+    eyebrow.setLetterSpacing(0.15f);
     eyebrow.setTypeface(null, Typeface.BOLD);
 
     root.addView(eyebrow);
@@ -161,116 +161,125 @@ public View onCreateView(
  * Creates a numbered navigation card using the existing
  * CampusConnect card design.
  */
-private void addNavigationCard(
-        LinearLayout parent,
-        String heading,
-        String description,
-        String number,
-        Runnable action
-) {
-    Context context = requireContext();
+        private void addNavigationCard(
+                LinearLayout parent,
+                String heading,
+                String description,
+                String number,
+                Runnable action
+        ) {
+        Context context = requireContext();
 
-    LinearLayout card = new LinearLayout(context);
-    card.setOrientation(LinearLayout.HORIZONTAL);
-    card.setGravity(Gravity.CENTER_VERTICAL);
-    card.setPadding(dp(16), dp(18), dp(16), dp(18));
-    card.setBackgroundResource(R.drawable.bg_card);
-    card.setClickable(true);
-    card.setFocusable(true);
+        // Check if dark mode / monochrome is active
+        boolean isDarkMode = (context.getResources().getConfiguration().uiMode 
+                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) 
+                == android.content.res.Configuration.UI_MODE_NIGHT_YES;
 
-    LinearLayout.LayoutParams cardParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        
+        // Ensure high-contrast dark text on the light cream cards
+        int cardTextColor = isDarkMode ? android.graphics.Color.parseColor("#1A1A1A") : context.getColor(R.color.primary_text);
+        int cardSubColor = isDarkMode ? android.graphics.Color.parseColor("#555555") : context.getColor(R.color.secondary_text);
 
-    cardParams.topMargin = dp(12);
-    parent.addView(card, cardParams);
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(16), dp(18), dp(16), dp(18));
+        card.setBackgroundResource(R.drawable.bg_card);
 
-    // Number
-    TextView numberView = new TextView(context);
-    numberView.setText(number);
-    numberView.setTextColor(
-            context.getColor(R.color.primary_accent)
-    );
-    numberView.setTextSize(15);
-    numberView.setTypeface(null, Typeface.BOLD);
-    numberView.setGravity(Gravity.CENTER);
+        if (isDarkMode) {
+        card.getBackground().setTint(android.graphics.Color.parseColor("#E6DFD3"));
+        }else {
+        card.getBackground().setTintList(null);
+        }
+        
+        card.setClickable(true);
+        card.setFocusable(true);
 
-    LinearLayout.LayoutParams numberParams =
-            new LinearLayout.LayoutParams(
-                    dp(42),
-                    dp(42)
-            );
+        LinearLayout.LayoutParams cardParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
 
-    card.addView(numberView, numberParams);
+        cardParams.topMargin = dp(12);
+        parent.addView(card, cardParams);
 
-    // Text container
-    LinearLayout textContainer = new LinearLayout(context);
-    textContainer.setOrientation(LinearLayout.VERTICAL);
+        // Number
+        TextView numberView = new TextView(context);
+        numberView.setText(number);
+        numberView.setTextColor(cardTextColor); // use dynamic contrast
+        numberView.setTextSize(15);
+        numberView.setTypeface(null, Typeface.BOLD);
+        numberView.setGravity(Gravity.CENTER);
 
-    LinearLayout.LayoutParams textParams =
-            new LinearLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    1f
-            );
+        LinearLayout.LayoutParams numberParams =
+                new LinearLayout.LayoutParams(
+                        dp(42),
+                        dp(42)
+                );
 
-    textParams.leftMargin = dp(14);
-    card.addView(textContainer, textParams);
+        card.addView(numberView, numberParams);
 
-    // Card title
-    TextView cardTitle = new TextView(context);
-    cardTitle.setText(heading);
-    cardTitle.setTextColor(
-            context.getColor(R.color.primary_text)
-    );
-    cardTitle.setTextSize(16);
-    cardTitle.setTypeface(null, Typeface.BOLD);
+        // Text container
+        LinearLayout textContainer = new LinearLayout(context);
+        textContainer.setOrientation(LinearLayout.VERTICAL);
 
-    textContainer.addView(cardTitle);
+        LinearLayout.LayoutParams textParams =
+                new LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        1f
+                );
 
-    // Card description
-    TextView cardDescription = new TextView(context);
-    cardDescription.setText(description);
-    cardDescription.setTextColor(
-            context.getColor(R.color.secondary_text)
-    );
-    cardDescription.setTextSize(13);
-    cardDescription.setLineSpacing(dp(2), 1f);
+        textParams.leftMargin = dp(14);
+        card.addView(textContainer, textParams);
 
-    LinearLayout.LayoutParams descriptionParams =
-            new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        // Card title
+        TextView cardTitle = new TextView(context);
+        cardTitle.setText(heading);
+        cardTitle.setTextColor(cardTextColor); // use dynamic contrast
+        cardTitle.setTextSize(16);
+        cardTitle.setTypeface(null, Typeface.BOLD);
 
-    descriptionParams.topMargin = dp(5);
-    textContainer.addView(
-            cardDescription,
-            descriptionParams
-    );
+        textContainer.addView(cardTitle);
 
-    // Arrow
-    TextView arrow = new TextView(context);
-    arrow.setText("›");
-    arrow.setTextColor(
-            context.getColor(R.color.primary_accent)
-    );
-    arrow.setTextSize(28);
-    arrow.setGravity(Gravity.CENTER);
+        // Card description
+        TextView cardDescription = new TextView(context);
+        cardDescription.setText(description);
+        cardDescription.setTextColor(cardSubColor); // use dynamic contrast
+        cardDescription.setTextSize(13);
+        cardDescription.setLineSpacing(dp(2), 1f);
 
-    LinearLayout.LayoutParams arrowParams =
-            new LinearLayout.LayoutParams(
-                    dp(24),
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            );
+        LinearLayout.LayoutParams descriptionParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
 
-    card.addView(arrow, arrowParams);
+        descriptionParams.topMargin = dp(5);
+        textContainer.addView(
+                cardDescription,
+                descriptionParams
+        );
 
-    // Navigation
-    card.setOnClickListener(v -> action.run());
-}
+        // Arrow
+        TextView arrow = new TextView(context);
+        arrow.setText("›");
+        arrow.setTextColor(cardTextColor); // use dynamic contrast
+        arrow.setTextSize(28);
+        arrow.setGravity(Gravity.CENTER);
+
+        LinearLayout.LayoutParams arrowParams =
+                new LinearLayout.LayoutParams(
+                        dp(24),
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        card.addView(arrow, arrowParams);
+
+        // Navigation
+        card.setOnClickListener(v -> action.run());
+        }
 
 /**
  * Opens the existing Campus Facilities screen.

@@ -12,6 +12,7 @@ public final class ThemeManager {
 
     public static final String LIGHT = "light";
     public static final String DARK = "dark";
+    public static final String MONOCHROME = "monochrome";
     public static final String SYSTEM = "system";
 
     private ThemeManager() {
@@ -34,12 +35,12 @@ public final class ThemeManager {
             AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_YES
             );
-
-        } else if (LIGHT.equals(selectedTheme)) {
+        } else if (LIGHT.equals(selectedTheme) || MONOCHROME.equals(selectedTheme)) {
+            // Both Light and Monochrome use light night mode base. 
+            // Theme-specific styles or runtime overrides can be applied here if needed.
             AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_NO
             );
-
         } else {
             AppCompatDelegate.setDefaultNightMode(
                     AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
@@ -62,5 +63,10 @@ public final class ThemeManager {
                 .apply();
 
         applyTheme(context);
+    }
+
+    // Returns true if Monochrome mode is currently active
+    public static boolean isMonochrome(Context context) {
+        return MONOCHROME.equals(getTheme(context));
     }
 }

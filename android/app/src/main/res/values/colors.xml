@@ -1,26 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Core Canvas & Adaptive Elements -->
+    <color name="primary_accent">#000000</color>
+    <color name="main_background">#FFFFFF</color>     <!-- White canvas for Light Mode -->
+    <color name="primary_text">#1C1B1A</color>        <!-- Dark text on canvas -->
+    <color name="secondary_text">#595550</color>      <!-- Muted gray for canvas subtitles -->
+    <color name="card_border">#D0C7BC</color>
 
-    <!-- Alien Light -->
-    <color name="primary_accent">#FF4500</color>
-    <color name="accent_hover">#E03D00</color>
+    <!-- Cream Surfaces & Card Typography (Identical Across Themes) -->
+    <color name="card_surface_cream">#E6DFD3</color>  <!--  Cream Surface -->
+    <color name="card_text_primary">#1A1A1A</color>   <!-- High-contrast headings/titles on cream -->
+    <color name="card_text_secondary">#333333</color> <!-- High-contrast body/subtitles on cream -->
 
-    <color name="main_background">#DAE0E6</color>
-    <color name="card_surface">#FFFFFF</color>
+    <!-- Modern Action Buttons -->
+    <color name="button_primary_bg">#1A1A1A</color>
+    <color name="button_primary_text">#FFFFFF</color>
+    <color name="button_secondary_bg">#E3DCD2</color>
+    <color name="button_secondary_text">#1A1A1A</color>
 
-    <color name="primary_text">#1C1C1C</color>
-    <color name="secondary_text">#787C7E</color>
-
-    <color name="card_divider">#EDEFF1</color>
+    <!-- Dashboard Surfaces & Dividers -->
+    <color name="card_surface">#E3DCD2</color>
+    <color name="card_divider">#D0C7BC</color>
 
     <!-- Status Colors -->
-    <color name="status_safe">#10B981</color>
-    <color name="status_warning">#F59E0B</color>
-    <color name="status_high_risk">#EF4444</color>
+    <color name="status_safe">#2E7D32</color>
+    <color name="status_warning">#EF6C00</color>
+    <color name="status_high_risk">#C62828</color>
+    <color name="accent_hover">#333333</color>
 
-    <!-- Common UI Colors -->
+    <!-- Basic Utilities -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="transparent">#00000000</color>
+
+    <!-- Input Fields -->
+    <color name="input_surface">#E3DCD2</color> 
+    <color name="input_text">#1C1B1A</color>
+
+    <!-- Academic & Campus Pastel Card Tints -->
+    <color name="card_attendance">#E8F5E9</color>
+    <color name="card_timetable">#EDE7F6</color>
+    <color name="card_assignments">#FFF3E0</color>
+    <color name="card_materials">#E0F7FA</color>
+    <color name="card_internals">#F3E5F5</color>
+    <color name="card_results">#FFF8E1</color>
+    <color name="card_exams">#FFEBEE</color>
+    <color name="card_performance">#FCE4EC</color>
+    <color name="card_facilities">#F1F8E9</color>
+    <color name="card_buspass">#E8EAF6</color>
+    <color name="card_events">#FFF3E0</color>
+    <color name="card_feedback">#F5F5F5</color>
+    <color name="card_notices">#E3F2FD</color>
+    <color name="card_notifications">#F1F3F5</color>
+
+    <!-- Profile Page Colors -->
+    <color name="screen_header_text">#1C1B1A</color>
+    <color name="profile_card_1">#CBE6F1</color>
+    <color name="profile_card_2">#4CA450</color>
+    <color name="profile_card_3">#FCCA46</color>
+    <color name="profile_card_4">#F36E65</color>
+
+    <!-- Notification Page Colors -->
+    <color name="notification_card_bg">#B4D5F6</color>
+    <color name="notification_card_text">#1A1A1A</color>
+    <color name="notification_card_sub">#333333</color>
+    <color name="notif_title_text">#1A1A1A</color>
+    <color name="notif_body_text">#555555</color>
+    <color name="notif_meta_text">#666666</color>
+    <color name="notif_category_text">#1A73E8</color>
 
 </resources>

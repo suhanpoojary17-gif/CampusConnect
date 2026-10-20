@@ -13,8 +13,8 @@
         android:orientation="vertical"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="24dp">
+        android:paddingTop="16dp"
+        android:paddingBottom="32dp">
 
         <!-- Top Header Navigation Bar -->
         <LinearLayout
@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="16dp">
 
             <!-- Top Left: Profile / Drawer Menu Button -->
             <FrameLayout
@@ -69,20 +69,19 @@
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_bell_outline"
                     android:contentDescription="Notifications" />
-
             </FrameLayout>
 
         </LinearLayout>
 
-        <!-- Welcome -->
+        <!-- Welcome Headings -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="CAMPUSCONNECT"
-            android:textColor="@color/primary_accent"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="12sp"
             android:textStyle="bold"
-            android:letterSpacing="0.12" />
+            android:letterSpacing="0.15" />
 
         <TextView
             android:id="@+id/welcomeText"
@@ -90,8 +89,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="Welcome back!"
-            android:textColor="@color/primary_text"
-            android:textSize="28sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="26sp"
             android:textStyle="bold" />
 
         <TextView
@@ -99,277 +98,354 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
+            android:layout_marginBottom="16dp"
             android:text="Loading your student profile..."
-            android:textColor="@color/secondary_text"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="14sp" />
 
-        <!-- CampusConnect Assistant -->
-        <LinearLayout
+        <!-- Interactive AI Search Bar (Assistant Card) -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/chatbotCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:background="@drawable/bg_card"
+            android:layout_marginBottom="20dp"
+            app:cardBackgroundColor="@color/card_notifications"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="18dp">
+            android:focusable="true">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    app:tint="#595550"
+                    android:contentDescription="Search" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="CampusConnect Assistant"
-                    android:textColor="@color/primary_text"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Ask about attendance, assignments, exams and more."
-                    android:textColor="@color/secondary_text"
-                    android:textSize="13sp" />
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="Ask Campus AI..."
+                    android:textColor="#595550"
+                    android:textSize="15sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="CHAT WITH ASSISTANT  →"
-                    android:textColor="@color/primary_accent"
-                    android:textSize="12sp"
+                    android:background="@drawable/bg_pill_white"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="5dp"
+                    android:text="Campus AI"
+                    android:textColor="#1A1A1A"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
             </LinearLayout>
 
-            <TextView
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="12dp"
-                android:background="@drawable/bg_card"
-                android:gravity="center"
-                android:text="AI"
-                android:textColor="@color/primary_accent"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+        </com.google.android.material.card.MaterialCardView>
 
-        </LinearLayout>
-
-        <!-- Attendance -->
-        <LinearLayout
-            android:id="@+id/attendanceCard"
+        <!-- Section Title for Carousel -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:layout_marginBottom="10dp"
+            android:text="Quick Overview"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Attendance overview"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/attendancePercentage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Loading..."
-                android:textColor="@color/primary_accent"
-                android:textSize="34sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/attendanceStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Calculating attendance status"
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/attendanceDetails"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text=" "
-                android:textColor="@color/secondary_text"
-                android:textSize="13sp" />
-
-        </LinearLayout>
-
-        <!-- Today's timetable -->
-        <LinearLayout
-            android:id="@+id/timetableCard"
+        <!-- Horizontal Swiping Card Carousel -->
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:scrollbars="none"
+            android:clipToPadding="false"
+            android:layout_marginBottom="16dp">
 
-            <TextView
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Today's timetable"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/timetableContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:lineSpacingExtra="6dp"
-                android:text="Loading today's classes..."
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
+                <!-- 1. Attendance Card (Soft Mint) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/attendanceCard"
+                    android:layout_width="260dp"
+                    android:layout_height="160dp"
+                    android:layout_marginEnd="12dp"
+                    app:cardBackgroundColor="@color/card_attendance"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    android:clickable="true"
+                    android:focusable="true">
 
-        </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="18dp">
 
-        <!-- Assignments -->
-        <LinearLayout
-            android:id="@+id/assignmentsCard"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Attendance overview"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/attendancePercentage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Loading..."
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="28sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/attendanceStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Calculating status"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/attendanceDetails"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text=" "
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="11sp" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 2. Timetable Card (Soft Lavender) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/timetableCard"
+                    android:layout_width="260dp"
+                    android:layout_height="160dp"
+                    android:layout_marginEnd="12dp"
+                    app:cardBackgroundColor="@color/card_timetable"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Today's timetable"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/timetableContent"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="8dp"
+                            android:ellipsize="end"
+                            android:maxLines="4"
+                            android:text="Loading today's classes..."
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="13sp" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 3. Assignments Card (Soft Peach) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/assignmentsCard"
+                    android:layout_width="260dp"
+                    android:layout_height="160dp"
+                    app:cardBackgroundColor="@color/card_assignments"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Upcoming assignments"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/assignmentsContent"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginTop="8dp"
+                            android:ellipsize="end"
+                            android:maxLines="4"
+                            android:text="Loading assignments..."
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="13sp" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Section Title for Feed -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="10dp"
+            android:text="Campus Feed"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Upcoming assignments"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/assignmentsContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:lineSpacingExtra="6dp"
-                android:text="Loading assignments..."
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
-
-        </LinearLayout>
-
-        <!-- Notices -->
-        <LinearLayout
+        <!-- Recent Notices Card (Soft Sky Blue) -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/noticesCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/card_notices"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:focusable="true">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Recent notices"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:padding="18dp">
 
-            <TextView
-                android:id="@+id/noticesContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:lineSpacingExtra="6dp"
-                android:text="Loading notices..."
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Recent notices"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/noticesContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Loading notices..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp" />
 
-        <!-- Academic performance -->
-        <LinearLayout
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Academic Performance Card (Soft Rose Pink) -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/performanceCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_card"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="@color/card_performance"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:focusable="true">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Academic performance"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:padding="18dp">
 
-            <TextView
-                android:id="@+id/performanceContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="Loading performance..."
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Academic performance"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/performanceContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Loading performance..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp" />
 
-        <!-- Notifications -->
-        <LinearLayout
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Notifications Card (Soft Pearl) -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/notificationsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp"
-            android:background="@drawable/bg_card"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/card_notifications"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
             android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:padding="18dp">
+            android:focusable="true">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Notifications"
-                android:textColor="@color/primary_text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:padding="18dp">
 
-            <TextView
-                android:id="@+id/notificationsContent"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Checking notifications..."
-                android:textColor="@color/secondary_text"
-                android:textSize="14sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Notifications"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/notificationsContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Checking notifications..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
